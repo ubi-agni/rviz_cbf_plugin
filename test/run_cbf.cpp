@@ -174,6 +174,8 @@ int main(int argc, char *argv[]) {
 		              KDL::Vector(0.2 * sin(w*t), 0.5 + 0.2 * cos(w*t), 0.1));
 		target_vector.head(3) = Eigen::Map<Eigen::Vector3d>(tm.p.data);
 		target_vector.tail(3) = Eigen::Map<Eigen::Vector3d>(tm.M.GetRot().data);
+		// TODO: replace the target motion computation
+		// by feedback from interactive marker
 		target->set_reference(target_vector);
 
 		// perform controller step

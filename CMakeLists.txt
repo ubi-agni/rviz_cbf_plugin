@@ -128,10 +128,12 @@ add_executable(run_cbf test/run_cbf.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(run_cbf ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(run_cbf
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(run_cbf ${catkin_LIBRARIES} ${CBF_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(run_cbf ${catkin_LIBRARIES} ${Boost_LIBRARIES} cbf)
 
 #############
 ## Install ##
