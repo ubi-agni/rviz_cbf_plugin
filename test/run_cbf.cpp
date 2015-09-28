@@ -40,6 +40,7 @@
 #include <angles/angles.h>
 
 #include <interactive_markers/interactive_marker_server.h>
+#include <tf/tf.h>
 
 namespace po = boost::program_options;
 namespace vm = visualization_msgs;
@@ -50,17 +51,17 @@ vm::InteractiveMarkerFeedback marker_feedback;
 
 void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 {
-	marker_feedback.pose.position.x = feedback.pose.position.x;
-	marker_feedback.pose.position.y = feedback.pose.position.y;
-	marker_feedback.pose.position.z = feedback.pose.position.z;
+	marker_feedback.pose.position.x = feedback->pose.position.x;
+	marker_feedback.pose.position.y = feedback->pose.position.y;
+	marker_feedback.pose.position.z = feedback->pose.position.z;
 	
-	marker_feedback.pose.orientation.w = feedback.pose.orientation.w;
-	marker_feedback.pose.orientation.x = feedback.pose.orientation.x;
-	marker_feedback.pose.orientation.y = feedback.pose.orientation.y;
-	marker_feedback.pose.orientation.z = feedback.pose.orientation.z;
+	marker_feedback.pose.orientation.w = feedback->pose.orientation.w;
+	marker_feedback.pose.orientation.x = feedback->pose.orientation.x;
+	marker_feedback.pose.orientation.y = feedback->pose.orientation.y;
+	marker_feedback.pose.orientation.z = feedback->pose.orientation.z;
 	
-	marker_feedback.header.frame_id = feedback.header.frame_id;
-	marker_feedback.header.stamp = feedback.header.stamp;
+	marker_feedback.header.frame_id = feedback->header.frame_id;
+	marker_feedback.header.stamp = feedback->header.stamp;
 	
 //TEMP -> pending clean up
 	
@@ -301,8 +302,8 @@ void make6DofMarker( bool fixed, unsigned int interaction_mode, const tf::Vector
 
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
-  if (interaction_mode != visualization_msgs::InteractiveMarkerControl::NONE)
-    menu_handler.apply( *server, int_marker.name );
+  /*if (interaction_mode != visualization_msgs::InteractiveMarkerControl::NONE)
+    menu_handler.apply( *server, int_marker.name );*/
 }
 
 //////////////////////////
@@ -351,9 +352,9 @@ int main(int argc, char *argv[]) {
 	
 	server.reset( new interactive_markers::InteractiveMarkerServer("basic_controls","",false) );
 	
-	tf::Vector3 init_position = tf::Vector3(target.segment(0,3));
-	tf::Quaternion init_orientation = tf::Quaternion(target.segment(3,4));
-//TEMP -> check validity
+	tf::Vector3 init_position = tf::Vector3(target_vector(0), target_vector(1), target_vector(2));
+	tf::Quaternion init_orientation = tf::Quaternion(target_vector(3), target_vector(4), target_vector(5), target_vector(6));
+//TEMP -> check x,y,z,w/w,x,y,z order     ^
 	make6DofMarker( false, visualization_msgs::InteractiveMarkerControl::NONE, init_position, true );
 	
 	
@@ -365,8 +366,8 @@ int main(int argc, char *argv[]) {
 	while (ros::ok()) {
 		
 		
-		KDL::Frame tm(KDL::Rotation::Quaternion(marker_feedback.pose.orientation),
-		              KDL::Vector(marker_feedback.pose.position);
+		KDL::Frame tm(KDL::Rotation::Quaternion(marker_feedback.pose.orientation.x, marker_feedback.pose.orientation.y, marker_feedback.pose.orientation.z, marker_feedback.pose.orientation.w),
+					  KDL::Vector(marker_feedback.pose.position.x, marker_feedback.pose.position.y, marker_feedback.pose.position.z));
 		target_vector.head(3) = Eigen::Map<Eigen::Vector3d>(tm.p.data);
 		target_vector.tail(3) = Eigen::Map<Eigen::Vector3d>(tm.M.GetRot().data);
 
@@ -380,8 +381,8 @@ int main(int argc, char *argv[]) {
 		jsp.publish(js_msg);
 
 //
-		// ?
-		server.applyChanges();
+		//
+		server->applyChanges();
 //
 
 		// process ros messages
