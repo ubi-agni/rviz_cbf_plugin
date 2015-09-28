@@ -56,17 +56,17 @@ void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 	marker_feedback.pose.position.x = feedback->pose.position.x;
 	marker_feedback.pose.position.y = feedback->pose.position.y;
 	marker_feedback.pose.position.z = feedback->pose.position.z;
-	
+
 	marker_feedback.pose.orientation.w = feedback->pose.orientation.w;
 	marker_feedback.pose.orientation.x = feedback->pose.orientation.x;
 	marker_feedback.pose.orientation.y = feedback->pose.orientation.y;
 	marker_feedback.pose.orientation.z = feedback->pose.orientation.z;
-	
+
 	marker_feedback.header.frame_id = feedback->header.frame_id;
 	marker_feedback.header.stamp = feedback->header.stamp;
-	
+
 //TEMP -> pending clean up
-	
+
   std::ostringstream s;
   s << "Feedback from marker '" << feedback->marker_name << "' "
       << " / control '" << feedback->control_name << "'";
@@ -311,8 +311,6 @@ void make6DofMarker(const std::string &root_link, bool fixed, unsigned int inter
 
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
-  /*if (interaction_mode != visualization_msgs::InteractiveMarkerControl::NONE)
-    menu_handler.apply( *server, int_marker.name );*/
 }
 
 //////////////////////////
@@ -367,10 +365,10 @@ int main(int argc, char *argv[]) {
 	auto jsp = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
 	// init joint_state message
 	auto js_msg = init_message(kdl_chain);
-	
-	
+
+
 	////////////////////////////////////////////////
-	
+
 	server.reset( new interactive_markers::InteractiveMarkerServer("cbf_control","",false) );
 	// initialize marker with end-effector pose from forward kinematics
 	KDL::ChainFkSolverPos_recursive fk = KDL::ChainFkSolverPos_recursive(kdl_chain);
@@ -382,7 +380,7 @@ int main(int argc, char *argv[]) {
 	tf::poseKDLToTF(kdl_pose, tf_pose);
 	make6DofMarker(kdl_chain.segments.front().getName(), false, visualization_msgs::InteractiveMarkerControl::NONE,
 	               tf_pose, true );
-	
+
 	////////////////////////////////////////////////
 
 
@@ -401,16 +399,13 @@ int main(int argc, char *argv[]) {
 		update_message(js_msg, joints);
 		jsp.publish(js_msg);
 
-//
-		//
 		server->applyChanges();
-//
 
 		// process ros messages
 		ros::spinOnce();
 		rate.sleep();
 	}
-	
+
 	server.reset();
 
 	return EXIT_SUCCESS;
