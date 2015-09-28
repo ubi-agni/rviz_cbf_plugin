@@ -4,7 +4,7 @@ project(rviz_cbf_plugin)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-set(ROS_DEPS roscpp moveit_ros_planning sensor_msgs) # interactive_markers visualization_msgs tf)
+set(ROS_DEPS roscpp moveit_ros_planning sensor_msgs interactive_markers visualization_msgs tf)
 find_package(catkin REQUIRED COMPONENTS ${ROS_DEPS})
 
 ## System dependencies are found with CMake's conventions
