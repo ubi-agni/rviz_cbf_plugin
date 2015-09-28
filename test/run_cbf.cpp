@@ -163,9 +163,15 @@ static void parse_arguments(int argc, char **argv,
 		;
 
 	po::variables_map variables_map;
-	po::store(po::parse_command_line(argc, argv, options_description),
-	          variables_map);
-	po::notify(variables_map);
+	try {
+		po::store(po::parse_command_line(argc, argv, options_description),
+		          variables_map);
+		po::notify(variables_map);
+	} catch (const po::error  &e) {
+		std::cerr << e.what() << std::endl;
+		usage(argv[0], options_description);
+		exit (EXIT_FAILURE);
+	}
 
 	if (variables_map.count("help")) {
 		usage(argv[0], options_description);
