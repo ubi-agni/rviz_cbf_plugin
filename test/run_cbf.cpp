@@ -313,6 +313,18 @@ void make6DofMarker( bool fixed, unsigned int interaction_mode, const tf::Vector
 }
 
 //////////////////////////
+void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Point &p) {
+	result << p.x, p.y, p.z;
+}
+void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Quaternion &q) {
+	result << q.x, q.y, q.z;
+	if (result.isMuchSmallerThan(1)) {
+		result = Eigen::Vector3d::Zero();
+	} else {
+		double angle = 2. * acos(q.w);
+		result *= angle / sin(0.5 * angle);
+	}
+}
 
 int main(int argc, char *argv[]) {
 	std::string tip_frame;
@@ -370,13 +382,9 @@ int main(int argc, char *argv[]) {
 	// run controller
 	ros::Rate rate(50); // 50 hz update rate
 	while (ros::ok()) {
-		
-		
-		KDL::Frame tm(KDL::Rotation::Quaternion(marker_feedback.pose.orientation.x, marker_feedback.pose.orientation.y, marker_feedback.pose.orientation.z, marker_feedback.pose.orientation.w),
-					  KDL::Vector(marker_feedback.pose.position.x, marker_feedback.pose.position.y, marker_feedback.pose.position.z));
-		target_vector.head(3) = Eigen::Map<Eigen::Vector3d>(tm.p.data);
-		target_vector.tail(3) = Eigen::Map<Eigen::Vector3d>(tm.M.GetRot().data);
-
+		// set target from marker feedback
+		assign(target_vector.head(3), marker_feedback.pose.position);
+		assign(target_vector.tail(3), marker_feedback.pose.orientation);
 		target->set_reference(target_vector);
 
 		// perform controller step
