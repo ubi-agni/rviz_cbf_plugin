@@ -26,6 +26,7 @@
 #include <kdl/chain.hpp>
 #include <kdl/tree.hpp>
 #include <kdl/frames.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
 #include <boost/program_options.hpp>
 #include <boost/make_shared.hpp>
 
@@ -41,6 +42,7 @@
 
 #include <interactive_markers/interactive_marker_server.h>
 #include <tf/tf.h>
+#include <tf_conversions/tf_kdl.h>
 
 namespace po = boost::program_options;
 namespace vm = visualization_msgs;
@@ -237,11 +239,12 @@ void update_message(sensor_msgs::JointState &msg,
 
 //////////////////////////
 
-void make6DofMarker( bool fixed, unsigned int interaction_mode, const tf::Vector3 &position, bool show_6dof )
+void make6DofMarker(const std::string &root_link, bool fixed, unsigned int interaction_mode,
+                    const tf::Pose &pose, bool show_6dof)
 {
   vm::InteractiveMarker int_marker;
-  int_marker.header.frame_id = "base_link";
-  tf::pointTFToMsg(position, int_marker.pose.position);
+  int_marker.header.frame_id = root_link;
+  tf::poseTFToMsg(pose, int_marker.pose);
   int_marker.scale = 1;
 
   int_marker.name = "6dof marker";
@@ -368,13 +371,17 @@ int main(int argc, char *argv[]) {
 	
 	////////////////////////////////////////////////
 	
-	server.reset( new interactive_markers::InteractiveMarkerServer("basic_controls","",false) );
-	
-	tf::Vector3 init_position = tf::Vector3(target_vector(0), target_vector(1), target_vector(2));
-	tf::Quaternion init_orientation = tf::Quaternion(target_vector(3), target_vector(4), target_vector(5), target_vector(6));
-//TEMP -> check x,y,z,w/w,x,y,z order     ^
-	make6DofMarker( false, visualization_msgs::InteractiveMarkerControl::NONE, init_position, true );
-	
+	server.reset( new interactive_markers::InteractiveMarkerServer("cbf_control","",false) );
+	// initialize marker with end-effector pose from forward kinematics
+	KDL::ChainFkSolverPos_recursive fk = KDL::ChainFkSolverPos_recursive(kdl_chain);
+	KDL::JntArray kdl_joints = KDL::JntArray(kdl_chain.getNrOfJoints());
+	KDL::Frame kdl_pose;
+	fk.JntToCart(kdl_joints, kdl_pose);
+
+	tf::Pose tf_pose;
+	tf::poseKDLToTF(kdl_pose, tf_pose);
+	make6DofMarker(kdl_chain.segments.front().getName(), false, visualization_msgs::InteractiveMarkerControl::NONE,
+	               tf_pose, true );
 	
 	////////////////////////////////////////////////
 
