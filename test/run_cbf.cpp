@@ -48,107 +48,7 @@ namespace po = boost::program_options;
 namespace vm = visualization_msgs;
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
-
 vm::InteractiveMarkerFeedback marker_feedback;
-
-void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
-{
-	marker_feedback.pose.position.x = feedback->pose.position.x;
-	marker_feedback.pose.position.y = feedback->pose.position.y;
-	marker_feedback.pose.position.z = feedback->pose.position.z;
-
-	marker_feedback.pose.orientation.w = feedback->pose.orientation.w;
-	marker_feedback.pose.orientation.x = feedback->pose.orientation.x;
-	marker_feedback.pose.orientation.y = feedback->pose.orientation.y;
-	marker_feedback.pose.orientation.z = feedback->pose.orientation.z;
-
-	marker_feedback.header.frame_id = feedback->header.frame_id;
-	marker_feedback.header.stamp = feedback->header.stamp;
-
-//TEMP -> pending clean up
-
-  std::ostringstream s;
-  s << "Feedback from marker '" << feedback->marker_name << "' "
-      << " / control '" << feedback->control_name << "'";
-
-  std::ostringstream mouse_point_ss;
-  if( feedback->mouse_point_valid )
-  {
-    mouse_point_ss << " at " << feedback->mouse_point.x
-                   << ", " << feedback->mouse_point.y
-                   << ", " << feedback->mouse_point.z
-                   << " in frame " << feedback->header.frame_id;
-  }
-
-  switch ( feedback->event_type )
-  {
-    case visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK:
-      ROS_INFO_STREAM( s.str() << ": button click" << mouse_point_ss.str() << "." );
-      break;
-
-    case visualization_msgs::InteractiveMarkerFeedback::MENU_SELECT:
-      ROS_INFO_STREAM( s.str() << ": menu item " << feedback->menu_entry_id << " clicked" << mouse_point_ss.str() << "." );
-      break;
-
-    case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
-      ROS_INFO_STREAM( s.str() << ": pose changed"
-          << "\nposition = "
-          << feedback->pose.position.x
-          << ", " << feedback->pose.position.y
-          << ", " << feedback->pose.position.z
-          << "\norientation = "
-          << feedback->pose.orientation.w
-          << ", " << feedback->pose.orientation.x
-          << ", " << feedback->pose.orientation.y
-          << ", " << feedback->pose.orientation.z
-          << "\nframe: " << feedback->header.frame_id
-          << " time: " << feedback->header.stamp.sec << "sec, "
-          << feedback->header.stamp.nsec << " nsec" );
-      break;
-
-    case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
-      ROS_INFO_STREAM( s.str() << ": mouse down" << mouse_point_ss.str() << "." );
-      break;
-
-    case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
-      ROS_INFO_STREAM( s.str() << ": mouse up" << mouse_point_ss.str() << "." );
-      break;
-  }
-
-  server->applyChanges();
-}
-
-vm::Marker makeBox( vm::InteractiveMarker &msg )
-{
-  vm::Marker marker;
-
-  marker.type = vm::Marker::CUBE;
-  marker.scale.x = msg.scale * 0.45;
-  marker.scale.y = msg.scale * 0.45;
-  marker.scale.z = msg.scale * 0.45;
-  marker.color.r = 0.5;
-  marker.color.g = 0.5;
-  marker.color.b = 0.5;
-  marker.color.a = 1.0;
-
-  return marker;
-}
-
-vm::InteractiveMarkerControl& makeBoxControl( vm::InteractiveMarker &msg )
-{
-  vm::InteractiveMarkerControl control;
-  control.always_visible = true;
-  control.markers.push_back( makeBox(msg) );
-  msg.controls.push_back( control );
-
-  return msg.controls.back();
-}
-
-void saveMarker( vm::InteractiveMarker int_marker )
-{
-  server->insert(int_marker);
-  server->setCallback(int_marker.name, &processFeedback);
-}
 
 static void usage (const char* prog_name, const po::options_description &opts) {
 	std::cout << "usage: Server [options] FILES" << std::endl;
@@ -237,7 +137,11 @@ void update_message(sensor_msgs::JointState &msg,
 	wrapper = resource->get();
 }
 
-//////////////////////////
+void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
+{
+	marker_feedback = *feedback;
+	std::cout << marker_feedback << std::endl;
+}
 
 void make6DofMarker(const std::string &root_link, bool fixed, unsigned int interaction_mode,
                     const tf::Pose &pose, bool show_6dof)
@@ -249,10 +153,7 @@ void make6DofMarker(const std::string &root_link, bool fixed, unsigned int inter
 
   int_marker.name = "6dof marker";
   int_marker.description = "6-DOF Marker Control";
-
-  // insert a box
-  makeBoxControl(int_marker);
-  int_marker.controls[0].interaction_mode = interaction_mode;
+  int_marker.scale = 0.2;
 
   vm::InteractiveMarkerControl control;
 
@@ -311,9 +212,9 @@ void make6DofMarker(const std::string &root_link, bool fixed, unsigned int inter
 
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
+  server->applyChanges();
 }
 
-//////////////////////////
 void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Point &p) {
 	result << p.x, p.y, p.z;
 }
@@ -367,8 +268,6 @@ int main(int argc, char *argv[]) {
 	auto js_msg = init_message(kdl_chain);
 
 
-	////////////////////////////////////////////////
-
 	server.reset( new interactive_markers::InteractiveMarkerServer("cbf_control","",false) );
 	// initialize marker with end-effector pose from forward kinematics
 	KDL::ChainFkSolverPos_recursive fk = KDL::ChainFkSolverPos_recursive(kdl_chain);
@@ -378,11 +277,10 @@ int main(int argc, char *argv[]) {
 
 	tf::Pose tf_pose;
 	tf::poseKDLToTF(kdl_pose, tf_pose);
-	make6DofMarker(kdl_chain.segments.front().getName(), false, visualization_msgs::InteractiveMarkerControl::NONE,
+	std::cout << "root segment: " << kdl_chain.segments.front().getName() << std::endl;
+	make6DofMarker(kdl_chain.segments.front().getName(), false,
+	               visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D,
 	               tf_pose, true );
-
-	////////////////////////////////////////////////
-
 
 	// run controller
 	ros::Rate rate(50); // 50 hz update rate
@@ -398,8 +296,6 @@ int main(int argc, char *argv[]) {
 		// fill + publish ros joint_state message
 		update_message(js_msg, joints);
 		jsp.publish(js_msg);
-
-		server->applyChanges();
 
 		// process ros messages
 		ros::spinOnce();
