@@ -277,8 +277,7 @@ int main(int argc, char *argv[]) {
 
 	tf::Pose tf_pose;
 	tf::poseKDLToTF(kdl_pose, tf_pose);
-	std::cout << "root segment: " << kdl_chain.segments.front().getName() << std::endl;
-	make6DofMarker(kdl_chain.segments.front().getName(), false,
+	make6DofMarker(kdl_tree.getRootSegment()->first, false,
 	               visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D,
 	               tf_pose, true );
 
