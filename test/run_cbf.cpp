@@ -41,6 +41,8 @@
 #include <angles/angles.h>
 
 #include <interactive_markers/interactive_marker_server.h>
+#include <moveit/robot_interaction/interactive_marker_helpers.h>
+
 #include <tf/tf.h>
 #include <tf_conversions/tf_kdl.h>
 
@@ -143,72 +145,21 @@ void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 	std::cout << marker_feedback << std::endl;
 }
 
-void make6DofMarker(const std::string &root_link, bool fixed, unsigned int interaction_mode,
-                    const tf::Pose &pose, bool show_6dof)
+void make6DofMarker(const geometry_msgs::PoseStamped &stamped)
 {
   vm::InteractiveMarker int_marker;
-  int_marker.header.frame_id = root_link;
-  tf::poseTFToMsg(pose, int_marker.pose);
-  int_marker.scale = 1;
-
+  int_marker.header = stamped.header;
+  int_marker.pose = stamped.pose;
   int_marker.name = "6dof marker";
-  int_marker.description = "6-DOF Marker Control";
-  int_marker.scale = 0.2;
+  double scale = int_marker.scale = 0.2;
 
-  vm::InteractiveMarkerControl control;
+  std_msgs::ColorRGBA color;
+  color.r = 0; color.g = 1; color.b = 1; color.a = 0.5;
+  robot_interaction::addViewPlaneControl(int_marker, scale * 0.25, color,
+                                         true, true);
+  robot_interaction::addPositionControl(int_marker, false);
+  robot_interaction::addOrientationControl(int_marker, false);
 
-  if ( fixed )
-  {
-    int_marker.name += "_fixed";
-    int_marker.description += "\n(fixed orientation)";
-    control.orientation_mode = vm::InteractiveMarkerControl::FIXED;
-  }
-
-  if (interaction_mode != visualization_msgs::InteractiveMarkerControl::NONE)
-  {
-      std::string mode_text;
-      if( interaction_mode == visualization_msgs::InteractiveMarkerControl::MOVE_3D )         mode_text = "MOVE_3D";
-      if( interaction_mode == visualization_msgs::InteractiveMarkerControl::ROTATE_3D )       mode_text = "ROTATE_3D";
-      if( interaction_mode == visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D )  mode_text = "MOVE_ROTATE_3D";
-      int_marker.name += "_" + mode_text;
-      int_marker.description = std::string("3D Control") + (show_6dof ? " + 6-DOF controls" : "") + "\n" + mode_text;
-  }
-
-  if(show_6dof)
-  {
-    control.orientation.w = 1;
-    control.orientation.x = 1;
-    control.orientation.y = 0;
-    control.orientation.z = 0;
-    control.name = "rotate_x";
-    control.interaction_mode = vm::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_x";
-    control.interaction_mode = vm::InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-
-    control.orientation.w = 1;
-    control.orientation.x = 0;
-    control.orientation.y = 1;
-    control.orientation.z = 0;
-    control.name = "rotate_z";
-    control.interaction_mode = vm::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_z";
-    control.interaction_mode = vm::InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-
-    control.orientation.w = 1;
-    control.orientation.x = 0;
-    control.orientation.y = 0;
-    control.orientation.z = 1;
-    control.name = "rotate_y";
-    control.interaction_mode = vm::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_y";
-    control.interaction_mode = vm::InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-  }
 
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
@@ -277,9 +228,15 @@ int main(int argc, char *argv[]) {
 
 	tf::Pose tf_pose;
 	tf::poseKDLToTF(kdl_pose, tf_pose);
-	make6DofMarker(kdl_tree.getRootSegment()->first, false,
-	               visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D,
-	               tf_pose, true );
+
+	geometry_msgs::PoseStamped stamped;
+	stamped.header.frame_id = kdl_tree.getRootSegment()->first;
+	tf::poseTFToMsg(tf_pose, stamped.pose);
+
+	make6DofMarker(stamped);
+
+	// set initial pose
+	marker_feedback.pose = stamped.pose;
 
 	// run controller
 	ros::Rate rate(50); // 50 hz update rate
