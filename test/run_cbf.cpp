@@ -185,7 +185,8 @@ int main(int argc, char *argv[]) {
 	parse_arguments(argc, argv, tip_frame);
 
 	rdf_loader::RDFLoader rdf("robot_description");
-	const boost::shared_ptr<srdf::Model> &srdf = rdf.getSRDF();
+	boost::shared_ptr<srdf::Model> srdf = rdf.getSRDF();
+	if (!srdf) srdf.reset(new srdf::Model());
 	const boost::shared_ptr<urdf::ModelInterface>& urdf = rdf.getURDF();
 	if (!urdf) {
 		ROS_ERROR("couldn't load URDF model");
