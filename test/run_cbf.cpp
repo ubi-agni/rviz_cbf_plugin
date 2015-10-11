@@ -29,8 +29,8 @@
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <boost/program_options.hpp>
 #include <boost/make_shared.hpp>
-
 #include <boost/assign/list_of.hpp>
+
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <moveit/robot_model/robot_model.h>
@@ -94,15 +94,13 @@ createController (boost::shared_ptr<KDL::Chain> chain)
 	auto mResource = boost::make_shared<CBF::DummyResource>(nJoints);
 
 	// sensor transform for position + axis angle control
-	std::vector<CBF::SensorTransformPtr> sensorTrafos = boost::assign::list_of
-	                                                    (CBF::SensorTransformPtr(new CBF::KDLChainPositionSensorTransform(chain)))
-	                                                    (CBF::SensorTransformPtr(new CBF::KDLChainAxisAngleSensorTransform(chain)));
-	auto sensorTrafo = boost::make_shared<CBF::CompositeSensorTransform>(sensorTrafos);
+	auto sensorTrafo = boost::make_shared<CBF::KDLChainPoseSensorTransform>(chain);
 
 	// potential
-	std::vector<CBF::PotentialPtr> potentials = boost::assign::list_of
-	                                            (CBF::PotentialPtr(new CBF::SquarePotential(3,0.1)))
-	                                            (CBF::PotentialPtr(new CBF::AxisAnglePotential(0.1)));
+	CBF::PotentialPtr pos_potential(new CBF::SquarePotential(3, 1.)); pos_potential->set_max_gradient_step_norm(0.1);
+	CBF::PotentialPtr rot_potential(new CBF::AxisAnglePotential(1.)); rot_potential->set_max_gradient_step_norm(angles::from_degrees(10));
+	std::vector<CBF::PotentialPtr> potentials
+	      = boost::assign::list_of(pos_potential)(rot_potential);
 
 	auto potential = boost::make_shared<CBF::CompositePotential>(potentials);
 
@@ -142,7 +140,7 @@ void update_message(sensor_msgs::JointState &msg,
 void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 {
 	marker_feedback = *feedback;
-	std::cout << marker_feedback << std::endl;
+//	std::cout << marker_feedback << std::endl;
 }
 
 void make6DofMarker(const geometry_msgs::PoseStamped &stamped)

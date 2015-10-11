@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
 		// do some nice target motion
 		double t = ros::Time::now().toSec();
 		const double w = 2*M_PI / 10; // motion frequency for period 10s
-		target_vector << 0.4, 0.8, 0.1,  0, angles::from_degrees(30)*sgn(sin(w*t)), 0;
+		target_vector << 0.4, 0.8, 0.1,  0, 0, angles::from_degrees(30)*sgn(sin(w*t));
 		target->set_reference(target_vector);
 
 		// perform controller step
