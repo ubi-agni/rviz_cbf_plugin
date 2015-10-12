@@ -97,12 +97,14 @@ createController (boost::shared_ptr<KDL::Chain> chain)
 	auto sensorTrafo = boost::make_shared<CBF::KDLChainPoseSensorTransform>(chain);
 
 	// potential
-	CBF::PotentialPtr pos_potential(new CBF::SquarePotential(3, 1.)); pos_potential->set_max_gradient_step_norm(0.1);
-	CBF::PotentialPtr rot_potential(new CBF::AxisAnglePotential(1.)); rot_potential->set_max_gradient_step_norm(angles::from_degrees(10));
+	CBF::PotentialPtr pos_potential(new CBF::SquarePotential(3, 1.)); pos_potential->set_max_gradient_step_norm(0.01);
+	CBF::PotentialPtr rot_potential(new CBF::AxisAnglePotential(1.)); rot_potential->set_max_gradient_step_norm(angles::from_degrees(1));
 	std::vector<CBF::PotentialPtr> potentials
 	      = boost::assign::list_of(pos_potential)(rot_potential);
 
 	auto potential = boost::make_shared<CBF::CompositePotential>(potentials);
+	auto solver = boost::make_shared<CBF::ThresholdGenericEffectorTransform>(6, nJoints);
+	solver->setThreshold(0.1);
 
 	// controller
 	return boost::make_shared<CBF::PrimitiveController>(
@@ -111,7 +113,7 @@ createController (boost::shared_ptr<KDL::Chain> chain)
 	         mReference,
 	         potential,
 	         sensorTrafo,
-	         boost::make_shared<CBF::DampedGenericEffectorTransform>(6, nJoints),
+	         solver,
 	         std::vector<CBF::SubordinateControllerPtr>(),
 	         CBF::CombinationStrategyPtr(new CBF::AddingStrategy),
 	         mResource
