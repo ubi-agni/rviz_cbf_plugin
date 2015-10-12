@@ -21,6 +21,7 @@
 #include <cbf/square_potential.h>
 #include <cbf/axis_angle_potential.h>
 #include <cbf/generic_transform.h>
+#include <cbf/identity_transform.h>
 
 #include <string>
 #include <kdl/chain.hpp>
@@ -88,6 +89,24 @@ createController (boost::shared_ptr<KDL::Chain> chain)
 {
 	unsigned int nJoints = chain->getNrOfJoints();
 
+	// subordinate controller
+	std::vector<CBF::ConvergenceCriterionPtr> convergence = boost::assign::list_of
+		(boost::make_shared<CBF::TaskSpaceDistanceThreshold>(1e-3));
+
+	CBF::PotentialPtr jnt_potential(new CBF::SquarePotential(nJoints, 1.));
+	jnt_potential->set_max_gradient_step_norm(angles::from_degrees(1.) / nJoints);
+
+	auto joint_ctrl = boost::make_shared<CBF::SubordinateController>(
+	                     1.0,
+	                     convergence,
+	                     boost::make_shared<CBF::DummyReference>(1,nJoints),
+	                     jnt_potential,
+	                     boost::make_shared<CBF::IdentitySensorTransform>(nJoints),
+	                     boost::make_shared<CBF::IdentityEffectorTransform>(nJoints),
+	                     std::vector<CBF::SubordinateControllerPtr>(),
+	                     CBF::CombinationStrategyPtr(new CBF::AddingStrategy)
+	                     );
+
 	// reference
 	auto mReference = boost::make_shared<CBF::DummyReference>(1,6);
 	// joint angle resource
@@ -97,8 +116,10 @@ createController (boost::shared_ptr<KDL::Chain> chain)
 	auto sensorTrafo = boost::make_shared<CBF::KDLChainPoseSensorTransform>(chain);
 
 	// potential
-	CBF::PotentialPtr pos_potential(new CBF::SquarePotential(3, 1.)); pos_potential->set_max_gradient_step_norm(0.01);
-	CBF::PotentialPtr rot_potential(new CBF::AxisAnglePotential(1.)); rot_potential->set_max_gradient_step_norm(angles::from_degrees(1));
+	CBF::PotentialPtr pos_potential(new CBF::SquarePotential(3, 1.));
+	pos_potential->set_max_gradient_step_norm(0.01);
+	CBF::PotentialPtr rot_potential(new CBF::AxisAnglePotential(1.));
+	rot_potential->set_max_gradient_step_norm(angles::from_degrees(1));
 	std::vector<CBF::PotentialPtr> potentials
 	      = boost::assign::list_of(pos_potential)(rot_potential);
 
@@ -109,12 +130,12 @@ createController (boost::shared_ptr<KDL::Chain> chain)
 	// controller
 	return boost::make_shared<CBF::PrimitiveController>(
 	         1.0,
-	         std::vector<CBF::ConvergenceCriterionPtr>(),
+	         convergence,
 	         mReference,
 	         potential,
 	         sensorTrafo,
 	         solver,
-	         std::vector<CBF::SubordinateControllerPtr>(),
+	         boost::assign::list_of(joint_ctrl),
 	         CBF::CombinationStrategyPtr(new CBF::AddingStrategy),
 	         mResource
 	         );
