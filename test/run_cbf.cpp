@@ -145,7 +145,7 @@ void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 //	std::cout << marker_feedback << std::endl;
 }
 
-void make6DofMarker(const geometry_msgs::PoseStamped &stamped)
+void make6DofMarker(const geometry_msgs::PoseStamped &stamped, bool ok)
 {
   vm::InteractiveMarker int_marker;
   int_marker.header = stamped.header;
@@ -154,13 +154,14 @@ void make6DofMarker(const geometry_msgs::PoseStamped &stamped)
   double scale = int_marker.scale = 0.2;
 
   std_msgs::ColorRGBA color;
-  color.r = 0; color.g = 1; color.b = 1; color.a = 0.5;
-  robot_interaction::addViewPlaneControl(int_marker, scale * 0.25, color,
-                                         true, true);
+  if (ok) { color.r = 0; color.g = 1; color.b = 1; color.a = 0.5; }
+  else    { color.r = 1; color.g = 0; color.b = 0; color.a = 0.5; }
+
+  robot_interaction::addViewPlaneControl(int_marker, scale * 0.25, color, true, true);
   robot_interaction::addPositionControl(int_marker, false);
   robot_interaction::addOrientationControl(int_marker, false);
 
-
+  server->clear();
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
   server->applyChanges();
@@ -234,7 +235,8 @@ int main(int argc, char *argv[]) {
 	stamped.header.frame_id = kdl_tree.getRootSegment()->first;
 	tf::poseTFToMsg(tf_pose, stamped.pose);
 
-	make6DofMarker(stamped);
+	bool bStalled = false;
+	make6DofMarker(stamped, !bStalled);
 
 	// set initial pose
 	marker_feedback.pose = stamped.pose;
@@ -248,7 +250,16 @@ int main(int argc, char *argv[]) {
 		target->set_reference(target_vector);
 
 		// perform controller step
-		controller->step();
+		unsigned int iMaxIter = 10;
+		while (iMaxIter && controller->step() == false) {
+			if (bStalled != controller->stalled()) {
+				bStalled = controller->stalled();
+				stamped.pose = marker_feedback.pose;
+				make6DofMarker(stamped, !bStalled);
+				if (bStalled) break;
+			}
+			--iMaxIter;
+		}
 
 		// fill + publish ros joint_state message
 		update_message(js_msg, joints);
