@@ -124,7 +124,7 @@ sensor_msgs::JointState init_message(const KDL::Chain &chain) {
 void update_message(sensor_msgs::JointState &msg,
                     const boost::shared_ptr<CBF::DummyResource> &resource) {
 	msg.header.stamp = ros::Time::now();
-	Eigen::Map<Eigen::VectorXd> wrapper(msg.position.data(), msg.position.size());
+	Eigen::Map<Eigen::VectorXd> wrapper(msg.position.data(), msg.position.size()); /////////////////////////////////////////////
 	wrapper = resource->get();
 }
 
@@ -173,8 +173,7 @@ int main(int argc, char *argv[]) {
 	// init joint_state message
 	auto js_msg = init_message(kdl_chain);
 
-	CBF::FloatVector initial(7);
-	initial << 0.51901399, -0.76299778, -0.03791721, 0.37316020, 0.02042723, 1.84549417, 0.21051285;
+    CBF::FloatVector initial(kdl_chain.getNrOfSegments());
 	joints->set(initial);
 
 	// run controller
