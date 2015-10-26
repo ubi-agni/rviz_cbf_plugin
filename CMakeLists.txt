@@ -11,6 +11,10 @@ find_package(catkin REQUIRED COMPONENTS ${ROS_DEPS})
 find_package(Boost REQUIRED program_options)
 find_package(CBF REQUIRED)
 
+## This plugin includes Qt widgets, so we must include Qt like so:
+find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
+include(${QT_USE_FILE})
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -111,6 +115,17 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(${CBF_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
+
+
+
+qt4_wrap_cpp(QT_MOC src/plugin_panel.h)
+set(SOURCES src/plugin_panel.cpp ${QT_MOC})
+
+add_library(${PROJECT_NAME} ${SOURCES})
+
+target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES})
+
+
 ## Declare a C++ library
 # add_library(rviz_cbf_plugin
 #   src/${PROJECT_NAME}/rviz_cbf_plugin.cpp
@@ -181,6 +196,28 @@ target_link_libraries(test_cbf ${catkin_LIBRARIES} ${Boost_LIBRARIES} cbf)
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+install(TARGETS
+  ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(FILES 
+  plugin_description.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+install(DIRECTORY media/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/media)
+
+install(DIRECTORY icons/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/icons)
+
+install(PROGRAMS scripts/send_test_msgs.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+
 
 #############
 ## Testing ##

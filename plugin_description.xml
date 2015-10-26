@@ -1,0 +1,9 @@
+<library path="lib/librviz_cbf_plugin">
+    <class name="plugin_panel/HelloWorld"
+           type="PluginPanel"
+           base_class_type="rviz::Panel">
+        <description>
+            An empty panel.
+        </description>
+    </class>
+</library>
