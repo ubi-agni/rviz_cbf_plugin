@@ -203,8 +203,10 @@ void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Quaternion
 
 int main(int argc, char *argv[]) {
 	std::string tip_frame;
-	ros::init (argc, argv, "run_cbf_test");
+	ros::init (argc, argv, "run_cbf");
 	parse_arguments(argc, argv, tip_frame);
+
+	ros::NodeHandle nh;
 
 	rdf_loader::RDFLoader rdf("robot_description");
 	boost::shared_ptr<srdf::Model> srdf = rdf.getSRDF();
@@ -236,7 +238,6 @@ int main(int argc, char *argv[]) {
 	CBF::FloatVector target_vector(target->dim());
 
 	// joint state publisher
-	ros::NodeHandle nh;
 	auto jsp = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
 	// init joint_state message
 	auto js_msg = init_message(kdl_chain);

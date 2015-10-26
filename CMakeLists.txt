@@ -15,6 +15,15 @@ find_package(CBF REQUIRED)
 find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
 
+<<<<<<< HEAD
+=======
+## We also use Ogre
+include($ENV{ROS_ROOT}/core/rosbuild/FindPkgConfig.cmake)
+pkg_check_modules(OGRE OGRE)
+include_directories( ${OGRE_INCLUDE_DIRS} )
+link_directories( ${OGRE_LIBRARY_DIRS} )
+
+>>>>>>> 82d915eff4bc8ea8cc1f9182a00b1f261576d859
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -117,6 +126,7 @@ include_directories(${CBF_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
 
 
+<<<<<<< HEAD
 
 qt4_wrap_cpp(QT_MOC src/plugin_panel.h)
 set(SOURCES src/plugin_panel.cpp ${QT_MOC})
@@ -124,6 +134,47 @@ set(SOURCES src/plugin_panel.cpp ${QT_MOC})
 add_library(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES})
+=======
+## I prefer the Qt signals and slots to avoid defining "emit", "slots",
+## etc because they can conflict with boost signals, so define QT_NO_KEYWORDS here.
+add_definitions(-DQT_NO_KEYWORDS)
+
+## Here we specify which header files need to be run through "moc",
+## Qt's meta-object compiler.
+qt4_wrap_cpp(MOC_FILES
+  src/drive_widget.h
+  src/imu_display.h
+  src/teleop_panel.h
+)
+
+## Here we specify the list of source files, including the output of
+## the previous command which is stored in ``${MOC_FILES}``.
+set(SOURCE_FILES
+  src/drive_widget.cpp
+  src/imu_display.cpp
+  src/imu_visual.cpp
+  src/teleop_panel.cpp 
+  ${MOC_FILES}
+)
+
+## An rviz plugin is just a shared library, so here we declare the
+## library to be called ``${PROJECT_NAME}`` (which is
+## "rviz_plugin_tutorials", or whatever your version of this project
+## is called) and specify the list of source files we collected above
+## in ``${SOURCE_FILES}``.
+add_library(rviz_cbf_plugin ${SOURCE_FILES})
+
+## Link the library with whatever Qt libraries have been defined by
+## the ``find_package(Qt4 ...)`` line above, and with whatever libraries
+## catkin has included.
+##
+## Although this puts "rviz_plugin_tutorials" (or whatever you have
+## called the project) as the name of the library, cmake knows it is a
+## library and names the actual file something like
+## "librviz_plugin_tutorials.so", or whatever is appropriate for your
+## particular OS.
+target_link_libraries(rviz_cbf_plugin ${QT_LIBRARIES} ${catkin_LIBRARIES})
+>>>>>>> 82d915eff4bc8ea8cc1f9182a00b1f261576d859
 
 
 ## Declare a C++ library
