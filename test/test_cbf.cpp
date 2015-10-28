@@ -124,7 +124,7 @@ sensor_msgs::JointState init_message(const KDL::Chain &chain) {
 void update_message(sensor_msgs::JointState &msg,
                     const boost::shared_ptr<CBF::DummyResource> &resource) {
 	msg.header.stamp = ros::Time::now();
-	Eigen::Map<Eigen::VectorXd> wrapper(msg.position.data(), msg.position.size()); /////////////////////////////////////////////
+	Eigen::Map<Eigen::VectorXd> wrapper(msg.position.data(), msg.position.size());
 	wrapper = resource->get();
 }
 
