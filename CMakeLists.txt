@@ -117,20 +117,21 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(${CBF_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+include_directories(src ${CBF_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
 qt4_wrap_cpp(QT_MOC_SOURCES src/panel.h)
 
 ## define a library
 add_library(${PROJECT_NAME}
    src/panel.cpp
+   src/marker_helpers.cpp
    ${QT_MOC_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${QT_LIBRARIES})
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(run_cbf test/run_cbf.cpp)
+add_executable(run_cbf test/run_cbf.cpp src/marker_helpers.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -139,7 +140,7 @@ add_dependencies(run_cbf
   ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(run_cbf ${catkin_LIBRARIES} ${Boost_LIBRARIES} cbf)
+target_link_libraries(run_cbf ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${QT_LIBRARIES} cbf)
 
 ## Declare a C++ executable
 add_executable(test_cbf test/test_cbf.cpp)

@@ -42,7 +42,8 @@
 #include <angles/angles.h>
 
 #include <interactive_markers/interactive_marker_server.h>
-#include <moveit/robot_interaction/interactive_marker_helpers.h>
+#include "marker_helpers.h"
+#include <QColor>
 
 #include <tf/tf.h>
 #include <tf_conversions/tf_kdl.h>
@@ -168,24 +169,21 @@ void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 
 void make6DofMarker(const geometry_msgs::PoseStamped &stamped, bool ok)
 {
-  vm::InteractiveMarker int_marker;
-  int_marker.header = stamped.header;
-  int_marker.pose = stamped.pose;
-  int_marker.name = "6dof marker";
-  double scale = int_marker.scale = 0.2;
+	vm::InteractiveMarker imarker = createInteractiveMarker("6dof marker", stamped);
+	double scale = imarker.scale = 0.2;
 
-  std_msgs::ColorRGBA color;
-  if (ok) { color.r = 0; color.g = 1; color.b = 1; color.a = 0.5; }
-  else    { color.r = 1; color.g = 0; color.b = 0; color.a = 0.5; }
+	visualization_msgs::InteractiveMarkerControl ctrl = createViewPlaneControl(true, true);
+	visualization_msgs::Marker m = createSphereMarker(scale * 0.25);
+	m << QColor(ok ? "lime" : "red");
+	ctrl.markers.push_back(m);
+	imarker.controls.push_back(ctrl);
 
-  robot_interaction::addViewPlaneControl(int_marker, scale * 0.25, color, true, true);
-  robot_interaction::addPositionControl(int_marker, false);
-  robot_interaction::addOrientationControl(int_marker, false);
+	addPositionControls(imarker);
+	addOrientationControls(imarker);
 
-  server->clear();
-  server->insert(int_marker);
-  server->setCallback(int_marker.name, &processFeedback);
-  server->applyChanges();
+	server->clear();
+	server->insert(imarker, &processFeedback);
+	server->applyChanges();
 }
 
 void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Point &p) {
