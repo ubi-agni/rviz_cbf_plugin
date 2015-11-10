@@ -3,6 +3,11 @@
 #ifndef Q_MOC_RUN
 # include <ros/ros.h>
 # include <rviz/panel.h>
+# include <interactive_markers/interactive_marker_server.h>
+# include <moveit/rdf_loader/rdf_loader.h>
+# include <kdl/chain.hpp>
+# include <kdl/tree.hpp>
+# include <tf/tf.h>
 #endif
 
 namespace rviz_cbf_plugin {
@@ -20,19 +25,16 @@ public:
 	virtual void save(rviz::Config config) const;
 	void initJoints();
 
-public Q_slots:
-
+public Q_SLOTS:
 	void setTopic(const QString& topic);
 
-protected Q_slots:
-
+protected Q_SLOTS:
 	void updateTopic();
 
 protected:
 	// The ROS node handle.
 	ros::NodeHandle nh;
 	interactive_markers::InteractiveMarkerServer server;
-	tf::TransformListener tf_listener;
 
 	rdf_loader::RDFLoader rdf;
 	boost::shared_ptr<srdf::Model> srdf;
@@ -40,15 +42,6 @@ protected:
 
 	KDL::Tree kdl_tree;
 	KDL::Chain kdl_chain;
-	
-	map<std::string, interactive_markers::MenuHandler> joint_menu_handlers;
-
-	bool in_move;
-
-	ros::Timer move_timer;
-	double move_time;
-
-	map<std::string, ros::Publisher> joint_publishers;
 };
 
 } // end namespace rviz_cbf_plugin

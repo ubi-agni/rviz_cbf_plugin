@@ -39,14 +39,13 @@ void Panel::save(rviz::Config config) const
 
 }
 
-void initJoints()
+void Panel::initJoints()
 {
 	createJointPublishers();
 	createJointMarkers();
-	//----!
 }
 
-void createJointPublishers()
+void Panel::createJointPublishers()
 {
   BOOST_FOREACH( std::string joint_name, joints )
   {
@@ -55,7 +54,7 @@ void createJointPublishers()
 
 }
 
-void createJointMarkers()
+void Panel::createJointMarkers()
 {
   for (unsigned int i = 0; i < joints.size() && i < links.size(); i++)
   {
@@ -63,28 +62,22 @@ void createJointMarkers()
   }
 }
 
-void createJointMarker(const string joint_name, const string link_name)
-  {
-    	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("", stamped);
+void Panel::createJointMarker(const string joint_name, const string link_name)
+{
+	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("", stamped);
 	imarker.name = joint_name;
 	imarker.header.frame_id = link_name;
 	double scale = imarker.scale = 0.2;
 
-	visualization_msgs::InteractiveMarkerControl ctrl = createViewPlaneControl(true, true);
-	visualization_msgs::Marker m = createSphereMarker(scale * 0.25);
-	m << QColor(ok ? "lime" : "red");
-	ctrl.markers.push_back(m);
-	imarker.controls.push_back(ctrl);
-
-	addPositionControls(imarker);
-	addOrientationControls(imarker);
+	// HERE you should use an orientation control (revolute) or position control (prismatic joint)
+	addOrientationControls(imarker, 1);
 
 	server->clear();
-	server->insert(imarker, &processFeedback);  // boost::bind ( , this, _1)
+	server->insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
 	server->applyChanges();
-  }
+}
 
-void processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
+void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 {
 	marker_feedback = *feedback;
 //	std::cout << marker_feedback << std::endl;
