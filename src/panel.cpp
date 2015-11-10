@@ -1,15 +1,14 @@
 #include "panel.h"
+#include <sensor_msgs/JointState.h>
 
 namespace rviz_cbf_plugin {
 
-Panel::Panel(QWidget* parent, std::string tip_frame) : rviz::Panel(parent), rdf("robot_description"), server("cbf_marker_server")
+Panel::Panel(QWidget* parent, std::string tip_frame)
+   : rviz::Panel(parent),
+     rdf("robot_description"),
+     server("cbf_marker_server")
 {
-public:
-
-
-protected:
-	
-	
+	init("tool_frame");
 }
 
 void Panel::load(const rviz::Config &config)
@@ -22,7 +21,7 @@ void Panel::save(rviz::Config config) const
 
 }
 
-void Panel::init()
+void Panel::init(const std::string &tip_frame)
 {
 	srdf = rdf.getSRDF();
 	if (!srdf) srdf.reset(new srdf::Model());
@@ -59,16 +58,7 @@ void Panel::init()
 	}
 
 	createJointMarkers();
-	createJointPublishers();
-}
-
-void Panel::createJointPublishers()
-{
-  BOOST_FOREACH( std::string joint_name, joints )
-  {
-    joint_publishers[joint_name] = (nh.advertise<std_msgs::Float64>("/" + joint_name + "/command", 1, false));
-  }
-
+	jsp = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
 }
 
 void Panel::createJointMarkers()

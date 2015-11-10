@@ -38,11 +38,6 @@ public:
 
 	virtual void load(const rviz::Config& config);
 	virtual void save(rviz::Config config) const;
-	void init();
-	void createJointPublishers();
-	void createJointMarkers();
-	void createJointMarker(const std::string joint_name, const std::string link_name);
-	void processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback);
 
 public Q_SLOTS:
 	void setTopic(const QString& topic);
@@ -51,6 +46,12 @@ protected Q_SLOTS:
 	void updateTopic();
 
 protected:
+	void init(const std::string &tip_frame);
+	void createJointMarkers();
+	void createJointMarker(const std::string joint_name, const std::string link_name);
+	void processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback);
+
+private:
 	// The ROS node handle.
 	ros::NodeHandle nh;
 	interactive_markers::InteractiveMarkerServer server;
@@ -60,7 +61,7 @@ protected:
 
 	rdf_loader::RDFLoader rdf;
 	boost::shared_ptr<srdf::Model> srdf;
-	boost::shared_ptr<urdf::ModelInterface>& urdf;
+	boost::shared_ptr<urdf::ModelInterface> urdf;
 
 	KDL::Tree kdl_tree;
 	KDL::Chain kdl_chain;
@@ -70,7 +71,7 @@ protected:
 	tf::Pose tf_pose;
 	geometry_msgs::PoseStamped stamped;
 
-	std::map<std::string, ros::Publisher> joint_publishers;
+	ros::Publisher jsp;
 };
 
 } // end namespace rviz_cbf_plugin
