@@ -2,31 +2,14 @@
 
 namespace rviz_cbf_plugin {
 
-Panel::Panel(QWidget* parent) : rviz::Panel(parent), rdf("robot_description")
+Panel::Panel(QWidget* parent, std::string tip_frame) : rviz::Panel(parent), rdf("robot_description"), server("cbf_marker_server")
 {
 public:
 
 
 protected:
-	srdf = rdf.getSRDF();
-	if (!srdf) srdf.reset(new srdf::Model());
-	urdf = rdf.getURDF();
-	if (!urdf) {
-		ROS_ERROR("couldn't load URDF model");
-		return EXIT_FAILURE;
-	}
-	robot_model::RobotModelPtr robot_model(new robot_model::RobotModel(urdf, srdf));
-
-	// fetch KDL tree
-	if (!kdl_parser::treeFromUrdfModel(*urdf, kdl_tree)) {
-		ROS_ERROR("Could not initialize KDL tree");
-		return EXIT_FAILURE;
-	}
-
-	if (!kdl_tree.getChain(kdl_tree.getRootSegment()->first, tip_frame, kdl_chain)) {
-		ROS_ERROR_STREAM("Could not find chain to " << tip_frame);
-		return EXIT_FAILURE;
-	}
+	
+	
 }
 
 void Panel::load(const rviz::Config &config)
@@ -39,17 +22,51 @@ void Panel::save(rviz::Config config) const
 
 }
 
-void Panel::initJoints()
+void Panel::init()
 {
-	createJointPublishers();
+	srdf = rdf.getSRDF();
+	if (!srdf) srdf.reset(new srdf::Model());
+	urdf = rdf.getURDF();
+	if (!urdf) {
+		ROS_ERROR("couldn't load URDF model");
+	}
+	robot_model::RobotModelPtr robot_model(new robot_model::RobotModel(urdf, srdf));
+
+	// fetch KDL tree
+	if (!kdl_parser::treeFromUrdfModel(*urdf, kdl_tree)) {
+		ROS_ERROR("Could not initialize KDL tree");
+	}
+
+	if (!kdl_tree.getChain(kdl_tree.getRootSegment()->first, tip_frame, kdl_chain)) {
+		ROS_ERROR_STREAM("Could not find chain to " << tip_frame);
+	}
+
+	//fk = KDL::ChainFkSolverPos_recursive(kdl_chain);
+	kdl_joints = KDL::JntArray(kdl_chain.getNrOfJoints());
+	//fk.JntToCart(kdl_joints, kdl_pose);
+	KDL::ChainFkSolverPos_recursive(kdl_chain).JntToCart(kdl_joints, kdl_pose);
+
+	tf::poseKDLToTF(kdl_pose, tf_pose);
+
+	stamped.header.frame_id = kdl_tree.getRootSegment()->first;
+	tf::poseTFToMsg(tf_pose, stamped.pose);
+
+	for (unsigned int i=0; i < kdl_chain.getNrOfSegments(); ++i) {
+		KDL::Segment segment = kdl_chain.getSegment(i);
+		links.push_back(segment.getName());
+		KDL::Joint joint = segment.getJoint();
+		joints.push_back(joint.getName());
+	}
+
 	createJointMarkers();
+	createJointPublishers();
 }
 
 void Panel::createJointPublishers()
 {
   BOOST_FOREACH( std::string joint_name, joints )
   {
-    joint_command_publishers[joint_name] = (nh.advertise<std_msgs::Float64>("/" + joint_name + "/command", 1, false));
+    joint_publishers[joint_name] = (nh.advertise<std_msgs::Float64>("/" + joint_name + "/command", 1, false));
   }
 
 }
@@ -62,7 +79,7 @@ void Panel::createJointMarkers()
   }
 }
 
-void Panel::createJointMarker(const string joint_name, const string link_name)
+void Panel::createJointMarker(const std::string joint_name, const std::string link_name)
 {
 	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("", stamped);
 	imarker.name = joint_name;
@@ -72,9 +89,9 @@ void Panel::createJointMarker(const string joint_name, const string link_name)
 	// HERE you should use an orientation control (revolute) or position control (prismatic joint)
 	addOrientationControls(imarker, 1);
 
-	server->clear();
-	server->insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
-	server->applyChanges();
+	server.clear();
+	server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
+	server.applyChanges();
 }
 
 void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
