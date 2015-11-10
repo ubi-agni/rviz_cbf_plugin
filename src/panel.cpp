@@ -1,5 +1,19 @@
 #include "panel.h"
+
 #include <sensor_msgs/JointState.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Pose.h>
+#include <tf/tf.h>
+#include <tf_conversions/tf_kdl.h>
+
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/frames.hpp>
+#include <kdl_parser/kdl_parser.hpp>
+#include <boost/foreach.hpp>
+
+#include "marker_helpers.h"
+
+namespace im = interactive_markers;
 
 namespace rviz_cbf_plugin {
 
@@ -40,13 +54,15 @@ void Panel::init(const std::string &tip_frame)
 		ROS_ERROR_STREAM("Could not find chain to " << tip_frame);
 	}
 
-	//fk = KDL::ChainFkSolverPos_recursive(kdl_chain);
-	kdl_joints = KDL::JntArray(kdl_chain.getNrOfJoints());
-	//fk.JntToCart(kdl_joints, kdl_pose);
-	KDL::ChainFkSolverPos_recursive(kdl_chain).JntToCart(kdl_joints, kdl_pose);
+	auto fk = KDL::ChainFkSolverPos_recursive(kdl_chain);
+	KDL::JntArray kdl_joints = KDL::JntArray(kdl_chain.getNrOfJoints());
+	KDL::Frame kdl_pose;
+	fk.JntToCart(kdl_joints, kdl_pose);
 
+	tf::Pose tf_pose;
 	tf::poseKDLToTF(kdl_pose, tf_pose);
 
+	geometry_msgs::PoseStamped stamped;
 	stamped.header.frame_id = kdl_tree.getRootSegment()->first;
 	tf::poseTFToMsg(tf_pose, stamped.pose);
 
@@ -71,9 +87,10 @@ void Panel::createJointMarkers()
 
 void Panel::createJointMarker(const std::string joint_name, const std::string link_name)
 {
-	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("", stamped);
-	imarker.name = joint_name;
-	imarker.header.frame_id = link_name;
+	geometry_msgs::PoseStamped stamped;
+	stamped.header.frame_id = link_name;
+
+	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker(joint_name, stamped);
 	double scale = imarker.scale = 0.2;
 
 	// HERE you should use an orientation control (revolute) or position control (prismatic joint)
