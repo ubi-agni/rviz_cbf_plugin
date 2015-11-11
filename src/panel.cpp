@@ -22,7 +22,7 @@ Panel::Panel(QWidget* parent, std::string tip_frame)
      rdf("robot_description"),
      server("cbf_marker_server")
 {
-	init("tool_frame");
+	init("ee_link");
 }
 
 void Panel::load(const rviz::Config &config)
@@ -45,7 +45,6 @@ void Panel::init(const std::string &tip_frame)
 	}
 	robot_model::RobotModelPtr robot_model(new robot_model::RobotModel(urdf, srdf));
 
-	// fetch KDL tree
 	if (!kdl_parser::treeFromUrdfModel(*urdf, kdl_tree)) {
 		ROS_ERROR("Could not initialize KDL tree");
 	}
@@ -73,6 +72,7 @@ void Panel::init(const std::string &tip_frame)
 		joints.push_back(joint.getName());
 	}
 
+	server.clear();
 	createJointMarkers();
 	jsp = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
 }
@@ -81,11 +81,11 @@ void Panel::createJointMarkers()
 {
   for (unsigned int i = 0; i < joints.size() && i < links.size(); i++)
   {
-    createJointMarker(joints[i], links[i]);
+    createJointMarker(joints[i], links[i], i);
   }
 }
 
-void Panel::createJointMarker(const std::string joint_name, const std::string link_name)
+void Panel::createJointMarker(const std::string joint_name, const std::string link_name, unsigned int segment_nr)
 {
 	geometry_msgs::PoseStamped stamped;
 	stamped.header.frame_id = link_name;
@@ -93,10 +93,20 @@ void Panel::createJointMarker(const std::string joint_name, const std::string li
 	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker(joint_name, stamped);
 	double scale = imarker.scale = 0.2;
 
-	// HERE you should use an orientation control (revolute) or position control (prismatic joint)
-	addOrientationControls(imarker, 1);
+	std::string type = kdl_chain.getSegment(segment_nr).getJoint().getTypeName();
 
-	server.clear();
+	
+
+	// HERE you should use an orientation control (revolute) or position control (prismatic joint)
+
+	
+	if (type == "RotX") addOrientationControls(imarker, 4);
+	if (type == "RotY") addOrientationControls(imarker, 2);
+	if (type == "RotZ") addOrientationControls(imarker, 1);
+	if (type == "TransX") addPositionControls(imarker, 4);
+	if (type == "TransY") addPositionControls(imarker, 2);
+	if (type == "TransZ") addPositionControls(imarker, 1);
+
 	server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
 	server.applyChanges();
 }

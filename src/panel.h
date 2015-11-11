@@ -37,7 +37,7 @@ protected Q_SLOTS:
 protected:
 	void init(const std::string &tip_frame);
 	void createJointMarkers();
-	void createJointMarker(const std::string joint_name, const std::string link_name);
+	void createJointMarker(const std::string joint_name, const std::string link_name, unsigned int segment_nr);
 	void processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback);
 
 private:
