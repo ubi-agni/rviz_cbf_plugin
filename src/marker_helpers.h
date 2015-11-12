@@ -31,6 +31,8 @@
 
 class QColor;
 
+namespace marker_helpers {
+
 void operator<< (geometry_msgs::Point &pos, const Eigen::Vector3d &p);
 void operator<< (geometry_msgs::Quaternion &quat, const Eigen::Quaterniond &q);
 geometry_msgs::Pose& operator<< (geometry_msgs::Pose &pose, const Eigen::Vector3d &p);
@@ -53,10 +55,13 @@ createInteractiveMarker(const std::string &name,
 visualization_msgs::InteractiveMarkerControl
 createViewPlaneControl(bool position, bool orientation);
 
+enum AXES {X = 1, Y = 2, Z = 4, ALL = X | Y | Z};
+
 void addPositionControls(visualization_msgs::InteractiveMarker& int_marker,
-                         unsigned int axes = 7,
+                         unsigned int axes = AXES::ALL,
                          bool orientation_fixed = false);
 void addOrientationControls(visualization_msgs::InteractiveMarker& int_marker,
-                            unsigned int axes = 7,
+                            unsigned int axes = AXES::ALL,
                             bool orientation_fixed = false);
 
+}

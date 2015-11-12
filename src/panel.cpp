@@ -14,6 +14,7 @@
 #include "marker_helpers.h"
 
 namespace im = interactive_markers;
+using namespace marker_helpers;
 
 namespace rviz_cbf_plugin {
 

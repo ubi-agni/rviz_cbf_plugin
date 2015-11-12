@@ -50,6 +50,7 @@
 
 namespace po = boost::program_options;
 namespace vm = visualization_msgs;
+using namespace marker_helpers;
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 vm::InteractiveMarkerFeedback marker_feedback;

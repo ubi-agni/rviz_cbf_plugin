@@ -27,6 +27,8 @@
 #include "marker_helpers.h"
 #include <QColor>
 
+namespace marker_helpers {
+
 void operator<< (geometry_msgs::Point &pos, const Eigen::Vector3d &p) {
 	pos.x = p[0];
 	pos.y = p[1];
@@ -197,4 +199,6 @@ void addOrientationControls(visualization_msgs::InteractiveMarker& int_marker,
 		                          Eigen::Vector3d::Unit(i));
 		int_marker.controls.push_back(control);
 	}
+}
+
 }
