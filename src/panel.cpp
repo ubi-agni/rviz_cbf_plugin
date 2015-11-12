@@ -18,34 +18,35 @@ using namespace marker_helpers;
 
 namespace rviz_cbf_plugin {
 
-Panel::Panel(QWidget* parent, std::string tip_frame)
+Panel::Panel(QWidget* parent)
    : rviz::Panel(parent),
-     rdf("robot_description"),
      server("cbf_marker_server")
 {
-	init("ee_link");
+	init("tool0");
 }
 
 void Panel::load(const rviz::Config &config)
 {
-
+	rviz::Panel::load(config);
 }
 
 void Panel::save(rviz::Config config) const
 {
-
+	rviz::Panel::save(config);
 }
 
 void Panel::init(const std::string &tip_frame)
 {
-	srdf = rdf.getSRDF();
+	rdf_loader::RDFLoader rdf("robot_description");
+	boost::shared_ptr<srdf::Model> srdf = rdf.getSRDF();
 	if (!srdf) srdf.reset(new srdf::Model());
-	urdf = rdf.getURDF();
+	boost::shared_ptr<urdf::ModelInterface> urdf = rdf.getURDF();
 	if (!urdf) {
 		ROS_ERROR("couldn't load URDF model");
 	}
 	robot_model::RobotModelPtr robot_model(new robot_model::RobotModel(urdf, srdf));
 
+	KDL::Tree kdl_tree;
 	if (!kdl_parser::treeFromUrdfModel(*urdf, kdl_tree)) {
 		ROS_ERROR("Could not initialize KDL tree");
 	}
@@ -66,56 +67,67 @@ void Panel::init(const std::string &tip_frame)
 	stamped.header.frame_id = kdl_tree.getRootSegment()->first;
 	tf::poseTFToMsg(tf_pose, stamped.pose);
 
-	for (unsigned int i=0; i < kdl_chain.getNrOfSegments(); ++i) {
-		KDL::Segment segment = kdl_chain.getSegment(i);
-		links.push_back(segment.getName());
-		KDL::Joint joint = segment.getJoint();
-		joints.push_back(joint.getName());
-	}
-
 	server.clear();
+	createEEMarker(stamped, true);
 	createJointMarkers();
+	server.applyChanges();
+
 	jsp = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
 }
 
 void Panel::createJointMarkers()
 {
-  for (unsigned int i = 0; i < joints.size() && i < links.size(); i++)
-  {
-    createJointMarker(joints[i], links[i], i);
-  }
+	for (unsigned int i=0; i < kdl_chain.getNrOfSegments(); ++i) {
+		const KDL::Segment &segment = kdl_chain.getSegment(i);
+		createJointMarker(segment);
+	}
 }
 
-void Panel::createJointMarker(const std::string joint_name, const std::string link_name, unsigned int segment_nr)
+void Panel::createJointMarker(const KDL::Segment &segment)
 {
+	const std::string &link_name = segment.getName();
 	geometry_msgs::PoseStamped stamped;
 	stamped.header.frame_id = link_name;
 
-	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker(joint_name, stamped);
+	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker(link_name, stamped);
 	double scale = imarker.scale = 0.2;
 
-	std::string type = kdl_chain.getSegment(segment_nr).getJoint().getTypeName();
+	const KDL::Joint &joint = segment.getJoint();
+	switch (joint.getType()) {
+	case KDL::Joint::RotX: addOrientationControls(imarker, AXES::X); break;
+	case KDL::Joint::RotY: addOrientationControls(imarker, AXES::Y); break;
+	case KDL::Joint::RotZ: addOrientationControls(imarker, AXES::Z); break;
 
-	
+	case KDL::Joint::TransX: addPositionControls(imarker, AXES::X); break;
+	case KDL::Joint::TransY: addPositionControls(imarker, AXES::Y); break;
+	case KDL::Joint::TransZ: addPositionControls(imarker, AXES::Z); break;
+	}
+	addOrientationControls(imarker, AXES::X);
 
-	// HERE you should use an orientation control (revolute) or position control (prismatic joint)
+	std::cout << "add marker with " << imarker.controls.size() << " controls" << std::endl;
+	server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
+}
 
-	
-	if (type == "RotX") addOrientationControls(imarker, 4);
-	if (type == "RotY") addOrientationControls(imarker, 2);
-	if (type == "RotZ") addOrientationControls(imarker, 1);
-	if (type == "TransX") addPositionControls(imarker, 4);
-	if (type == "TransY") addPositionControls(imarker, 2);
-	if (type == "TransZ") addPositionControls(imarker, 1);
+void Panel::createEEMarker(const geometry_msgs::PoseStamped &stamped, bool ok)
+{
+	vm::InteractiveMarker imarker = createInteractiveMarker("EE", stamped);
+	double scale = imarker.scale = 0.2;
+
+	visualization_msgs::InteractiveMarkerControl ctrl = createViewPlaneControl(true, true);
+	visualization_msgs::Marker m = createSphereMarker(scale * 0.25);
+	m << QColor(ok ? "lime" : "red");
+	ctrl.markers.push_back(m);
+	imarker.controls.push_back(ctrl);
+
+	addPositionControls(imarker);
+	addOrientationControls(imarker);
 
 	server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
-	server.applyChanges();
 }
 
 void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 {
 	marker_feedback = *feedback;
-//	std::cout << marker_feedback << std::endl;
 }
 
 } // end namespace rviz_cbf_plugin

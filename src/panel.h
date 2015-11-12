@@ -23,36 +23,24 @@ class Panel: public rviz::Panel
 	Q_OBJECT
 
 public:
-	Panel(QWidget* parent = 0, std::string tip_frame = "base_link");
+	Panel(QWidget* parent = 0);
 
 	virtual void load(const rviz::Config& config);
 	virtual void save(rviz::Config config) const;
 
-public Q_SLOTS:
-	void setTopic(const QString& topic);
-
-protected Q_SLOTS:
-	void updateTopic();
-
 protected:
 	void init(const std::string &tip_frame);
 	void createJointMarkers();
-	void createJointMarker(const std::string joint_name, const std::string link_name, unsigned int segment_nr);
+	void createJointMarker(const KDL::Segment &segment);
+	void createEEMarker(const geometry_msgs::PoseStamped &stamped, bool ok);
 	void processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback);
 
 private:
-	// The ROS node handle.
+	// The ROS node handle
 	ros::NodeHandle nh;
 	interactive_markers::InteractiveMarkerServer server;
 	vm::InteractiveMarkerFeedback marker_feedback;
 
-	std::vector<std::string> joints, links;
-
-	rdf_loader::RDFLoader rdf;
-	boost::shared_ptr<srdf::Model> srdf;
-	boost::shared_ptr<urdf::ModelInterface> urdf;
-
-	KDL::Tree kdl_tree;
 	KDL::Chain kdl_chain;
 
 	ros::Publisher jsp;
