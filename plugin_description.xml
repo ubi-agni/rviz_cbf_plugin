@@ -1,7 +1,7 @@
 <library path="lib/librviz_cbf_plugin">
   <class name="rviz_cbf_plugin/CBF"
-         type="rviz_cbf_plugin::Panel"
-         base_class_type="rviz::Panel">
+         type="rviz_cbf_plugin::ControllerDisplay"
+         base_class_type="rviz::Display">
     <description>
       Configure and test a CBF controller
     </description>
