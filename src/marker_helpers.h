@@ -57,10 +57,15 @@ createViewPlaneControl(bool position, bool orientation);
 
 enum AXES {X = 1, Y = 2, Z = 4, ALL = X | Y | Z};
 
-void addPositionControls(visualization_msgs::InteractiveMarker& int_marker,
+void addPositionControl(visualization_msgs::InteractiveMarker& imarker,
+                        const Eigen::Vector3d &axis, bool orientation_fixed = false);
+void addPositionControls(visualization_msgs::InteractiveMarker& imarker,
                          unsigned int axes = AXES::ALL,
                          bool orientation_fixed = false);
-void addOrientationControls(visualization_msgs::InteractiveMarker& int_marker,
+
+void addOrientationControl(visualization_msgs::InteractiveMarker& imarker,
+                           const Eigen::Vector3d &axis, bool orientation_fixed = false);
+void addOrientationControls(visualization_msgs::InteractiveMarker& imarker,
                             unsigned int axes = AXES::ALL,
                             bool orientation_fixed = false);
 

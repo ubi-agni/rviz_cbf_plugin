@@ -22,7 +22,7 @@ Panel::Panel(QWidget* parent)
    : rviz::Panel(parent),
      server("cbf_marker_server")
 {
-	init("tool0");
+	init("ee_link");
 }
 
 void Panel::load(const rviz::Config &config)
@@ -85,27 +85,33 @@ void Panel::createJointMarkers()
 
 void Panel::createJointMarker(const KDL::Segment &segment)
 {
+	const KDL::Joint  &joint = segment.getJoint();
 	const std::string &link_name = segment.getName();
+	const std::string &joint_name = joint.getName();
 	geometry_msgs::PoseStamped stamped;
 	stamped.header.frame_id = link_name;
 
-	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker(link_name, stamped);
+	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("JJ#" + joint_name, stamped);
 	double scale = imarker.scale = 0.2;
 
-	const KDL::Joint &joint = segment.getJoint();
 	switch (joint.getType()) {
 	case KDL::Joint::RotX: addOrientationControls(imarker, AXES::X); break;
 	case KDL::Joint::RotY: addOrientationControls(imarker, AXES::Y); break;
 	case KDL::Joint::RotZ: addOrientationControls(imarker, AXES::Z); break;
+	case KDL::Joint::RotAxis:
+		addOrientationControl(imarker, Eigen::Map<Eigen::Vector3d>(joint.JointAxis().data));
+		break;
 
 	case KDL::Joint::TransX: addPositionControls(imarker, AXES::X); break;
 	case KDL::Joint::TransY: addPositionControls(imarker, AXES::Y); break;
 	case KDL::Joint::TransZ: addPositionControls(imarker, AXES::Z); break;
+	case KDL::Joint::TransAxis:
+		addPositionControl(imarker, Eigen::Map<Eigen::Vector3d>(joint.JointAxis().data));
+		break;
 	}
-	addOrientationControls(imarker, AXES::X);
 
-	std::cout << "add marker with " << imarker.controls.size() << " controls" << std::endl;
-	server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
+	if (imarker.controls.size() > 0)
+		server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
 }
 
 void Panel::createEEMarker(const geometry_msgs::PoseStamped &stamped, bool ok)

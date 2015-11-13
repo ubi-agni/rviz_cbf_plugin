@@ -161,43 +161,45 @@ createViewPlaneControl(bool position, bool orientation)
 	return control;
 }
 
-void addPositionControls(visualization_msgs::InteractiveMarker& int_marker,
-                         unsigned int axes,
-                         bool orientation_fixed)
-{
+void addPositionControl(visualization_msgs::InteractiveMarker& imarker,
+                        const Eigen::Vector3d &axis, bool orientation_fixed) {
 	visualization_msgs::InteractiveMarkerControl control;
-
 	if (orientation_fixed)
 		control.orientation_mode = visualization_msgs::InteractiveMarkerControl::FIXED;
 	control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
 
+	control.orientation << Eigen::Quaterniond::FromTwoVectors(
+	                          Eigen::Vector3d::UnitX(), axis);
+	imarker.controls.push_back(control);
+}
+
+void addPositionControls(visualization_msgs::InteractiveMarker& imarker,
+                         unsigned int axes, bool orientation_fixed)
+{
 	for (unsigned int i=0; i < 3; ++i) {
 		if (!(axes & (1 << i))) continue;
-
-		control.orientation << Eigen::Quaterniond::FromTwoVectors(
-		                          Eigen::Vector3d::UnitX(),
-		                          Eigen::Vector3d::Unit(i));
-		int_marker.controls.push_back(control);
+		addPositionControl(imarker, Eigen::Vector3d::Unit(i), orientation_fixed);
 	}
 }
 
-void addOrientationControls(visualization_msgs::InteractiveMarker& int_marker,
-                            unsigned int axes,
-                            bool orientation_fixed)
-{
+void addOrientationControl(visualization_msgs::InteractiveMarker& imarker,
+                           const Eigen::Vector3d &axis, bool orientation_fixed) {
 	visualization_msgs::InteractiveMarkerControl control;
-
 	if (orientation_fixed)
 		control.orientation_mode = visualization_msgs::InteractiveMarkerControl::FIXED;
 	control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
 
+	control.orientation << Eigen::Quaterniond::FromTwoVectors(
+	                          Eigen::Vector3d::UnitX(), axis);
+	imarker.controls.push_back(control);
+}
+
+void addOrientationControls(visualization_msgs::InteractiveMarker& imarker,
+                            unsigned int axes, bool orientation_fixed)
+{
 	for (unsigned int i=0; i < 3; ++i) {
 		if (!(axes & (1 << i))) continue;
-
-		control.orientation << Eigen::Quaterniond::FromTwoVectors(
-		                          Eigen::Vector3d::UnitX(),
-		                          Eigen::Vector3d::Unit(i));
-		int_marker.controls.push_back(control);
+		addOrientationControl(imarker, Eigen::Vector3d::Unit(i), orientation_fixed);
 	}
 }
 
