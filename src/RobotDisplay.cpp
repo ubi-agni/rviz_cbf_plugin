@@ -5,11 +5,12 @@
 #include <rviz/properties/float_property.h>
 #include <rviz/robot/robot.h>
 #include <rviz/robot/robot_link.h>
-#include <rviz/robot/link_updater.h>
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <urdf_model/model.h>
 #include <urdf_model/link.h>
+
+using namespace moveit_rviz_plugin;
 
 namespace rviz_cbf_plugin
 {
@@ -37,7 +38,7 @@ RobotDisplay::RobotDisplay(rviz::Property *parent)
 void RobotDisplay::onInitialize()
 {
 	Display::onInitialize();
-	robot_.reset(new rviz::Robot(scene_node_, context_, "CBF", this));
+	robot_.reset(new RobotStateVisualization(scene_node_, context_, "CBF", this));
 
 	// set initial values
 	changedVisualEnabled();
@@ -100,11 +101,11 @@ void RobotDisplay::fixedFrameChanged()
 // calculate offset from fixed frame to robot root
 void RobotDisplay::calculateOffsetPosition()
 {
-	if (!robot_ || !robot_->getRootLink()) {
+	if (!robot_ || !robot_->getRobot().getRootLink()) {
 		setStatus(rviz::StatusProperty::Error, "robot model", "no root link");
 		return;
 	}
-	const std::string &root_link = robot_->getRootLink()->getName();
+	const std::string &root_link = robot_->getRobot().getRootLink()->getName();
 	tf::Stamped<tf::Pose> pose(tf::Pose::getIdentity(), ros::Time(0), root_link);
 
 	unsigned int attempts = 10;

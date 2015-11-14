@@ -2,7 +2,7 @@
 
 #include <rviz/display.h>
 #include <ros/ros.h>
-#include <urdf/model.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
 #include <kdl/tree.hpp>
 
 #include <boost/thread/mutex.hpp>
@@ -57,7 +57,7 @@ protected:
 
 	// robot model
 	boost::mutex robot_model_loading_mutex_;
-	urdf::Model urdf_;
+	robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
 	KDL::Tree kdl_tree_;
 
 	// show our interactive markers

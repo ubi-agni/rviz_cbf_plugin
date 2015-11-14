@@ -81,12 +81,14 @@ void ControllerDisplay::loadRobotModel()
 	// wait for other robot loadRobotModel() calls to complete;
 	boost::mutex::scoped_lock _(robot_model_loading_mutex_);
 
-	if (!urdf_.initParam(robot_description_property_->getStdString())) {
+	robot_model_loader_.reset(new robot_model_loader::RobotModelLoader(robot_description_property_->getStdString()));
+	const boost::shared_ptr<urdf::ModelInterface> &urdf = robot_model_loader_->getURDF();
+	if (!urdf) {
 		setStatus(rviz::StatusProperty::Error, "robot model", "failed load URDF model");
 		return;
 	}
 
-	if (!kdl_parser::treeFromUrdfModel(urdf_, kdl_tree_)) {
+	if (!kdl_parser::treeFromUrdfModel(*urdf, kdl_tree_)) {
 		setStatus(rviz::StatusProperty::Error, "robot model", "failed to parse KDL tree");
 		return;
 	}
@@ -96,7 +98,7 @@ void ControllerDisplay::loadRobotModel()
 
 void ControllerDisplay::onRobotModelLoaded()
 {
-	robot_display_->setModel(urdf_);
+	robot_display_->setModel(*robot_model_loader_->getURDF());
 	/* TODO
 	robot_interaction_.reset(new robot_interaction::RobotInteraction(getRobotModel(), "rviz_moveit_motion_planning_display"));
 	imarker_display_->subProp("Update Topic")->setValue(QString::fromStdString(robot_interaction_->getServerTopic() + "/update"));

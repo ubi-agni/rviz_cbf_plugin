@@ -1,7 +1,7 @@
 #pragma once
 
 #include <rviz/display.h>
-#include <Eigen/Core>
+#include <moveit/rviz_plugin_render_tools/robot_state_visualization.h>
 
 namespace urdf
 {
@@ -20,7 +20,7 @@ namespace rviz_cbf_plugin
 
 /** Visualize the robot
  *
- *  mimics moveit_rviz_plugin::RobotStateVisualization,
+ *  builds on moveit_rviz_plugin::RobotStateVisualization,
  *  adding some properties and updating links from joint states
  */
 class RobotDisplay : public rviz::Display
@@ -50,7 +50,7 @@ protected:
 	rviz::BoolProperty *visual_enabled_property_;
 	rviz::BoolProperty *collision_enabled_property_;
 	rviz::FloatProperty *alpha_property_;
-	boost::shared_ptr<rviz::Robot> robot_;
+	moveit_rviz_plugin::RobotStateVisualizationPtr robot_;
 };
 
 } // namespace rviz_cbf_plugin
