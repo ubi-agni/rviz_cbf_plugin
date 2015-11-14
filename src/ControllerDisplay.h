@@ -2,13 +2,19 @@
 
 #include <rviz/display.h>
 #include <ros/ros.h>
-#include <moveit/robot_model_loader/robot_model_loader.h>
 #include <kdl/tree.hpp>
 
 #include <boost/thread/mutex.hpp>
 
-namespace rviz
-{
+#include <moveit/macros/class_forward.h>
+namespace moveit {
+namespace core {
+MOVEIT_CLASS_FORWARD(RobotState);
+}}
+namespace robot_model_loader {
+MOVEIT_CLASS_FORWARD(RobotModelLoader);
+}
+namespace rviz {
 class Property;
 class StringProperty;
 class BoolProperty;
@@ -58,6 +64,7 @@ protected:
 	// robot model
 	boost::mutex robot_model_loading_mutex_;
 	robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
+	moveit::core::RobotStatePtr robot_state_;
 	KDL::Tree kdl_tree_;
 
 	// show our interactive markers

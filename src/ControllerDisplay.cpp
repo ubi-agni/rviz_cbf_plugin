@@ -9,6 +9,8 @@
 #include <rviz/window_manager_interface.h>
 #include <rviz/display_factory.h>
 
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_state/robot_state.h>
 #include <urdf/model.h>
 #include <kdl_parser/kdl_parser.hpp>
 
@@ -99,6 +101,12 @@ void ControllerDisplay::loadRobotModel()
 void ControllerDisplay::onRobotModelLoaded()
 {
 	robot_display_->setModel(*robot_model_loader_->getURDF());
+
+	// initialize robot state
+	robot_state_.reset(new moveit::core::RobotState(robot_model_loader_->getModel()));
+	robot_state_->update();
+	robot_display_->update(boost::const_pointer_cast<const moveit::core::RobotState>(robot_state_));
+
 	/* TODO
 	robot_interaction_.reset(new robot_interaction::RobotInteraction(getRobotModel(), "rviz_moveit_motion_planning_display"));
 	imarker_display_->subProp("Update Topic")->setValue(QString::fromStdString(robot_interaction_->getServerTopic() + "/update"));

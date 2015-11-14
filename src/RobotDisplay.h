@@ -1,14 +1,19 @@
 #pragma once
 
 #include <rviz/display.h>
-#include <moveit/rviz_plugin_render_tools/robot_state_visualization.h>
 
-namespace urdf
-{
+#include <moveit/macros/class_forward.h>
+namespace moveit_rviz_plugin {
+MOVEIT_CLASS_FORWARD(RobotStateVisualization);
+}
+namespace moveit {
+namespace core {
+MOVEIT_CLASS_FORWARD(RobotState);
+}}
+namespace urdf {
 class ModelInterface;
 }
-namespace rviz
-{
+namespace rviz {
 class Robot;
 class BoolProperty;
 class FloatProperty;
@@ -32,7 +37,7 @@ public:
 
 	void setModel(const urdf::ModelInterface &urdf);
 	void reset();
-	void update(const Eigen::VectorXd &joint_values);
+	void update(moveit::core::RobotStateConstPtr rs);
 
 protected:
 	void onInitialize();

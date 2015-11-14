@@ -9,6 +9,7 @@
 #include <tf/transform_listener.h>
 #include <urdf_model/model.h>
 #include <urdf_model/link.h>
+#include <moveit/rviz_plugin_render_tools/robot_state_visualization.h>
 
 using namespace moveit_rviz_plugin;
 
@@ -73,8 +74,9 @@ void RobotDisplay::reset()
 	robot_->setCollisionVisible(collision_enabled_property_->getBool());
 }
 
-void RobotDisplay::update(const Eigen::VectorXd &joint_values)
+void RobotDisplay::update(moveit::core::RobotStateConstPtr rs)
 {
+	robot_->update(rs);
 }
 
 void RobotDisplay::changedVisualEnabled()
