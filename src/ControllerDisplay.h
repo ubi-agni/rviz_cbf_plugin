@@ -6,6 +6,11 @@
 
 #include <boost/thread/mutex.hpp>
 
+#include <moveit/robot_interaction/robot_interaction.h>
+#include <moveit/robot_interaction/interaction_handler.h>
+// facilitate migration from MoveIt's RobotInteraction to our own
+using namespace robot_interaction;
+
 #include <moveit/macros/class_forward.h>
 namespace moveit {
 namespace core {
@@ -52,6 +57,7 @@ protected:
 
 	void loadRobotModel();
 	void onRobotModelLoaded();
+	void initRobotState();
 
 protected:
 	ros::NodeHandle node_handle_;
@@ -67,7 +73,9 @@ protected:
 	moveit::core::RobotStatePtr robot_state_;
 	KDL::Tree kdl_tree_;
 
-	// show our interactive markers
+	// robot interaction: server + display
+	RobotInteractionPtr robot_interaction_;
+	RobotInteraction::InteractionHandlerPtr ia_;
 	rviz::Display *imarker_display_;
 
 	// the config panel

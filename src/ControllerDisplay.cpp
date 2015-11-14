@@ -55,7 +55,7 @@ void ControllerDisplay::onInitialize()
 		config_panel_dock_ = window_context->addPane("CBF Controller Config", config_panel_);
 	}
 
-	// display our markers
+	// display our interactive markers
 	imarker_display_ = context_->getDisplayFactory()->make("rviz/InteractiveMarkers");
 	imarker_display_->initialize(context_);
 
@@ -101,16 +101,16 @@ void ControllerDisplay::loadRobotModel()
 void ControllerDisplay::onRobotModelLoaded()
 {
 	robot_display_->setModel(*robot_model_loader_->getURDF());
-
+	auto robot_model = robot_model_loader_->getModel();
 	// initialize robot state
-	robot_state_.reset(new moveit::core::RobotState(robot_model_loader_->getModel()));
-	robot_state_->update();
+	robot_state_.reset(new moveit::core::RobotState(robot_model));
+	initRobotState();
 	robot_display_->update(boost::const_pointer_cast<const moveit::core::RobotState>(robot_state_));
 
-	/* TODO
-	robot_interaction_.reset(new robot_interaction::RobotInteraction(getRobotModel(), "rviz_moveit_motion_planning_display"));
+	// RobotInteraction has the interactive marker server
+	robot_interaction_.reset(new RobotInteraction(robot_model, "rviz_cbf_plugin"));
+	// listen to the create marker topic
 	imarker_display_->subProp("Update Topic")->setValue(QString::fromStdString(robot_interaction_->getServerTopic() + "/update"));
-	*/
 }
 
 void ControllerDisplay::onEnable()
@@ -134,7 +134,7 @@ void ControllerDisplay::update(float wall_dt, float ros_dt)
 		imarker_display_->update(wall_dt, ros_dt);
 	Display::update(wall_dt, ros_dt);
 
-	// TODO perform controller step and update robot_display_
+	// TODO perform controller step and then update robot_state and robot_display_
 }
 
 void ControllerDisplay::fixedFrameChanged()
@@ -151,6 +151,13 @@ void ControllerDisplay::load(const rviz::Config& config)
 void ControllerDisplay::save(rviz::Config config) const
 {
 	Display::save(config);
+}
+
+void ControllerDisplay::initRobotState()
+{
+	// TODO: initialize robot_state_ to zero
+	// update pose of all links
+	robot_state_->update();
 }
 
 } // namespace rviz_cbf_plugin
