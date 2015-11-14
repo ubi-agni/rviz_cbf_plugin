@@ -94,6 +94,11 @@ void RobotDisplay::changedAlpha()
 	robot_->setAlpha(alpha_property_->getFloat());
 }
 
+void RobotDisplay::setVisible(bool bVisible)
+{
+	robot_->setVisible(bVisible);
+}
+
 void RobotDisplay::fixedFrameChanged()
 {
 	Display::fixedFrameChanged();

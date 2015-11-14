@@ -116,12 +116,14 @@ void ControllerDisplay::onRobotModelLoaded()
 void ControllerDisplay::onEnable()
 {
 	Display::onEnable();
+	robot_display_->setVisible(true);
 	imarker_display_->setEnabled(true);
 	imarker_display_->setFixedFrame(fixed_frame_);
 }
 
 void ControllerDisplay::onDisable()
 {
+	robot_display_->setVisible(false);
 	imarker_display_->setEnabled(false);
 	Display::onDisable();
 }

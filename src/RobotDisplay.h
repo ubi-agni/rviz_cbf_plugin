@@ -38,6 +38,7 @@ public:
 	void setModel(const urdf::ModelInterface &urdf);
 	void reset();
 	void update(moveit::core::RobotStateConstPtr rs);
+	void setVisible(bool bVisible);
 
 protected:
 	void onInitialize();
