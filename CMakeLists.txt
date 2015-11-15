@@ -14,6 +14,8 @@ find_package(CBF REQUIRED)
 ## This plugin includes Qt widgets, so we must include Qt like so:
 find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
+# auto-create moc files
+set(CMAKE_AUTOMOC ON)
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -119,11 +121,6 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 ## Your package locations should be listed before other locations
 include_directories(src ${CBF_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
-qt4_wrap_cpp(QT_MOC_SOURCES
-   src/RobotDisplay.h
-   src/ControllerDisplay.h
-   src/ConfigPanel.h
-)
 ## define a library
 add_library(${PROJECT_NAME}
    src/marker_helpers.cpp
@@ -131,7 +128,9 @@ add_library(${PROJECT_NAME}
    src/ControllerDisplay.cpp
    src/ConfigPanel.cpp
    src/plugin_init.cpp
-   ${QT_MOC_SOURCES}
+   src/controller/Controller.cpp
+   src/controller/RootController.cpp
+   src/controller/PositionController.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${QT_LIBRARIES})
