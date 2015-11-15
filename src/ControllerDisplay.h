@@ -6,11 +6,6 @@
 
 #include <boost/thread/mutex.hpp>
 
-#include <moveit/robot_interaction/robot_interaction.h>
-#include <moveit/robot_interaction/interaction_handler.h>
-// facilitate migration from MoveIt's RobotInteraction to our own
-using namespace robot_interaction;
-
 #include <moveit/macros/class_forward.h>
 namespace moveit {
 namespace core {
@@ -32,6 +27,7 @@ namespace rviz_cbf_plugin
 
 class RobotDisplay;
 class ConfigPanel;
+MOVEIT_CLASS_FORWARD(RobotInteraction);
 class ControllerDisplay : public rviz::Display
 {
 	Q_OBJECT
@@ -75,7 +71,6 @@ protected:
 
 	// robot interaction: server + display
 	RobotInteractionPtr robot_interaction_;
-	RobotInteraction::InteractionHandlerPtr ia_;
 	rviz::Display *imarker_display_;
 
 	// the config panel

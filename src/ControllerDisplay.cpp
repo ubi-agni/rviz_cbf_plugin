@@ -1,6 +1,7 @@
 #include "ControllerDisplay.h"
 #include "RobotDisplay.h"
 #include "ConfigPanel.h"
+#include "RobotInteraction.h"
 
 #include <rviz/properties/string_property.h>
 #include <rviz/properties/bool_property.h>

@@ -127,6 +127,7 @@ add_library(${PROJECT_NAME}
    src/RobotDisplay.cpp
    src/ControllerDisplay.cpp
    src/ConfigPanel.cpp
+   src/RobotInteraction.cpp
    src/plugin_init.cpp
    src/controller/Controller.cpp
    src/controller/RootController.cpp

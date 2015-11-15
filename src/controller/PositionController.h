@@ -5,6 +5,7 @@
 namespace rviz {
 class EditableEnumProperty;
 }
+
 namespace rviz_cbf_plugin
 {
 
