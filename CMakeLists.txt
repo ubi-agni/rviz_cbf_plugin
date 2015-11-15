@@ -129,8 +129,9 @@ add_library(${PROJECT_NAME}
    src/ConfigPanel.cpp
    src/RobotInteraction.cpp
    src/plugin_init.cpp
+
+   src/controller/properties.cpp
    src/controller/Controller.cpp
-   src/controller/RootController.cpp
    src/controller/PositionController.cpp
 )
 

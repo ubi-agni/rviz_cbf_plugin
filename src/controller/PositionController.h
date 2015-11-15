@@ -1,29 +1,30 @@
 #pragma once
-#include "rviz/properties/property.h"
+#include "Controller.h"
+#include "properties.h"
 #include <Eigen/Core>
 
 namespace rviz {
-class EditableEnumProperty;
 }
 
 namespace rviz_cbf_plugin
 {
 
-class PositionController : public rviz::Property
+class PositionController : public Controller
 {
 	Q_OBJECT
 public:
-	explicit PositionController(rviz::Property *parent = 0);
+	explicit PositionController(const Controller &parent);
 
 protected:
 	void markerCallback(const Eigen::Vector3d &position);
 
 protected Q_SLOTS:
+	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
 	void changedLinkName();
 
 protected:
 	std::string link_name_;
-	rviz::EditableEnumProperty *link_name_property_;
+	LinkNameProperty *link_name_property_;
 };
 
 } // namespace rviz_cbf_plugin
