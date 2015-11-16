@@ -37,7 +37,6 @@ protected:
 	void createJointMarkers();
 	void createJointMarker(const KDL::Segment &segment);
 	void createEEMarker(const geometry_msgs::PoseStamped &stamped, bool ok);
-	sensor_msgs::JointState init_message(const KDL::Chain &chain);
 	void processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback);
 
 private:
