@@ -1,4 +1,5 @@
 #include "Controller.h"
+#include "RobotInteraction.h"
 
 namespace rviz_cbf_plugin
 {
@@ -27,9 +28,16 @@ void Controller::hideMarkers(bool bHide) const
 }
 
 
-RootController::RootController(rviz::Property *parent) :
-   Controller("Controllers", parent, *this)
+RootController::RootController(rviz::Property *parent,
+                               RobotInteractionPtr &ri) :
+   Controller("Controllers", parent, *this),
+   ri_(ri)
 {
+}
+
+void RootController::setRobotModel(const moveit::core::RobotModelConstPtr &rm)
+{
+	robotModelChanged(rm);
 }
 
 void RootController::showMarkers(const Controller::RegisteredMarkers &markers) const

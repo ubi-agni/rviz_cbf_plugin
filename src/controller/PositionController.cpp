@@ -1,4 +1,6 @@
 #include "PositionController.h"
+#include "properties.h"
+
 #include <rviz/properties/editable_enum_property.h>
 #include <moveit/robot_model/robot_model.h>
 #include <boost/bind.hpp>
@@ -7,14 +9,14 @@
 namespace rviz_cbf_plugin
 {
 
-PositionController::PositionController(const Controller &parent) :
-   Controller("position", parent)
+PositionController::PositionController(const Controller &parent,
+                                       const QString& name) :
+   Controller(name, parent)
 {
 	link_name_property_ = new LinkNameProperty("Link name", "", "controlled link name",
-	                                                 this, SLOT(changedLinkName()), this);
-	connect(&getRoot(), SIGNAL(robotModelChanged(robot_model::RobotModelConstPtr)),
-	        this, SLOT(setRobotModel(robot_model::RobotModelConstPtr)));
-// TODO	addPositionMarker(link_name_, boost::bind(&PositionController::markerCallback, this, _1));
+	                                           this, SLOT(changedLinkName()), this);
+	connect(&getRoot(), SIGNAL(robotModelChanged(moveit::core::RobotModelConstPtr)),
+	        this, SLOT(setRobotModel(moveit::core::RobotModelConstPtr)));
 }
 
 void PositionController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
@@ -25,8 +27,9 @@ void PositionController::setRobotModel(const robot_model::RobotModelConstPtr &rm
 			// use first end effector as default
 			const auto links = rm->getLinkModels();
 			BOOST_FOREACH(const moveit::core::LinkModel *link, links) {
+				// TODO: fix finding end effector.
 				if (link->getChildJointModels().empty()) {
-					link_name_property_->setString(QString::fromStdString(link->getName()));
+					setLink(link->getName());
 					break;
 				}
 			}
@@ -36,7 +39,19 @@ void PositionController::setRobotModel(const robot_model::RobotModelConstPtr &rm
 
 void PositionController::changedLinkName()
 {
+	setLink(link_name_property_->getStdString());
+}
 
+void PositionController::setLink(const std::string &name)
+{
+	if (name == link_name_) return;
+
+	link_name_ = name;
+	link_name_property_->setValue(QString::fromStdString(link_name_));
+
+	emit linkNameChanged(link_name_);
+
+	// TODO	addPositionMarker(link_name_, boost::bind(&PositionController::markerCallback, this, _1));
 }
 
 void PositionController::markerCallback(const Eigen::Vector3d &position)

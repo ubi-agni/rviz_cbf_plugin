@@ -27,6 +27,7 @@ namespace rviz_cbf_plugin
 
 class RobotDisplay;
 class ConfigPanel;
+class RootController;
 MOVEIT_CLASS_FORWARD(RobotInteraction);
 class ControllerDisplay : public rviz::Display
 {
@@ -60,8 +61,8 @@ protected:
 
 	// properties to show on side panel
 	rviz::StringProperty *robot_description_property_;
-	RobotDisplay *robot_display_;
-	rviz::Property *controller_root_;
+	RobotDisplay   *robot_display_;
+	RootController *controller_root_;
 
 	// robot model
 	boost::mutex robot_model_loading_mutex_;

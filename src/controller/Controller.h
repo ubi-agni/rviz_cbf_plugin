@@ -3,10 +3,15 @@
 #include <map>
 #include <string>
 
+#include <moveit/macros/class_forward.h>
+namespace moveit { namespace core {
+MOVEIT_CLASS_FORWARD(RobotModel);
+}}
 namespace rviz_cbf_plugin
 {
 
 class RootController;
+MOVEIT_CLASS_FORWARD(RobotInteraction);
 class Controller : public rviz::Property
 {
 	Q_OBJECT
@@ -37,11 +42,20 @@ class RootController : public Controller
 	Q_OBJECT
 
 public:
-	explicit RootController(rviz::Property *parent);
+	explicit RootController(rviz::Property *parent, RobotInteractionPtr &ri);
+
+Q_SIGNALS:
+	void robotModelChanged(const moveit::core::RobotModelConstPtr &rm);
+
+public Q_SLOTS:
+	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
 
 public:
 	void showMarkers(const RegisteredMarkers &markers) const;
 	void hideMarkers(const RegisteredMarkers &markers) const;
+
+private:
+	RobotInteractionPtr ri_;
 };
 
 } // namespace rviz_cbf_plugin

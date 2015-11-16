@@ -2,6 +2,8 @@
 #include "RobotDisplay.h"
 #include "ConfigPanel.h"
 #include "RobotInteraction.h"
+#include "controller/Controller.h"
+#include "controller/PositionController.h"
 
 #include <rviz/properties/string_property.h>
 #include <rviz/properties/bool_property.h>
@@ -32,15 +34,21 @@ ControllerDisplay::ControllerDisplay() :
 	robot_display_->setName("Robot Visualization");
 	this->addChild(robot_display_);
 
-	controller_root_ = new rviz::Property("Controller", QVariant(), "", this);
-
 	config_panel_ = new ConfigPanel();
+	robot_interaction_.reset(new RobotInteraction());
+	controller_root_ = new RootController(this, robot_interaction_);
+
+	// TODO: for testing only:
+	new PositionController(*controller_root_);
+	controller_root_->expand();
 }
 
 ControllerDisplay::~ControllerDisplay()
 {
-	if (imarker_display_) delete imarker_display_;
-	if (config_panel_dock_) delete config_panel_dock_;
+	delete config_panel_dock_;
+	delete controller_root_;
+	delete imarker_display_;
+	robot_interaction_.reset();
 }
 
 void ControllerDisplay::onInitialize()
@@ -59,6 +67,9 @@ void ControllerDisplay::onInitialize()
 	// display our interactive markers
 	imarker_display_ = context_->getDisplayFactory()->make("rviz/InteractiveMarkers");
 	imarker_display_->initialize(context_);
+	// listen to the marker topic of RobotInteraction
+	imarker_display_->subProp("Update Topic")->setValue
+	      (QString::fromStdString(robot_interaction_->getServerTopic() + "/update"));
 
 	// show children by default
 	this->expand();
@@ -108,10 +119,9 @@ void ControllerDisplay::onRobotModelLoaded()
 	initRobotState();
 	robot_display_->update(boost::const_pointer_cast<const moveit::core::RobotState>(robot_state_));
 
-	// RobotInteraction has the interactive marker server
-	robot_interaction_.reset(new RobotInteraction(robot_model, "rviz_cbf_plugin"));
-	// listen to the create marker topic
-	imarker_display_->subProp("Update Topic")->setValue(QString::fromStdString(robot_interaction_->getServerTopic() + "/update"));
+	// inform others about new model
+	robot_interaction_->setRobotModel(robot_model);
+	controller_root_->setRobotModel(robot_model);
 }
 
 void ControllerDisplay::onEnable()
@@ -156,7 +166,8 @@ void ControllerDisplay::save(rviz::Config config) const
 
 void ControllerDisplay::initRobotState()
 {
-	// TODO: initialize robot_state_ to zero
+	robot_state_->setVariablePositions
+	      (std::vector<double>(robot_state_->getVariableCount()));
 	// update pose of all links
 	robot_state_->update();
 }
