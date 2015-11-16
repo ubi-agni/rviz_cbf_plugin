@@ -72,7 +72,7 @@ void Panel::init(const std::string &tip_frame)
 	// joint angle resource
 	joints = boost::make_shared<CBF::DummyResource>(kdl_chain.getNrOfJoints());
 
-	CBF::FloatVector target_vector(target->dim());
+	target_vector.resize(target->dim());
 
 	server.clear();
 	createEEMarker(stamped, true);
