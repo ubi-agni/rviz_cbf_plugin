@@ -68,12 +68,10 @@ void Panel::init(const std::string &tip_frame)
 	marker_feedback.pose = stamped.pose;
 
 	// reference
-	auto mReference = boost::make_shared<CBF::DummyReference>(1,6);
+	target = boost::make_shared<CBF::DummyReference>(1,6);
 	// joint angle resource
-	auto mResource = boost::make_shared<CBF::DummyResource>(kdl_chain.getNrOfJoints());
+	joints = boost::make_shared<CBF::DummyResource>(kdl_chain.getNrOfJoints());
 
-	CBF::DummyResourcePtr  joints = boost::dynamic_pointer_cast<CBF::DummyResource>(mResource);
-	CBF::DummyReferencePtr target = boost::dynamic_pointer_cast<CBF::DummyReference>(mReference);
 	CBF::FloatVector target_vector(target->dim());
 
 	server.clear();
