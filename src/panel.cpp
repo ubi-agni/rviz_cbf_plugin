@@ -1,6 +1,5 @@
 #include "panel.h"
 
-#include <sensor_msgs/JointState.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
 #include <tf/tf.h>
@@ -66,6 +65,16 @@ void Panel::init(const std::string &tip_frame)
 	geometry_msgs::PoseStamped stamped;
 	stamped.header.frame_id = kdl_tree.getRootSegment()->first;
 	tf::poseTFToMsg(tf_pose, stamped.pose);
+	marker_feedback.pose = stamped.pose;
+
+	// reference
+	auto mReference = boost::make_shared<CBF::DummyReference>(1,6);
+	// joint angle resource
+	auto mResource = boost::make_shared<CBF::DummyResource>(kdl_chain.getNrOfJoints());
+
+	CBF::DummyResourcePtr  joints = boost::dynamic_pointer_cast<CBF::DummyResource>(mResource);
+	CBF::DummyReferencePtr target = boost::dynamic_pointer_cast<CBF::DummyReference>(mReference);
+	CBF::FloatVector target_vector(target->dim());
 
 	server.clear();
 	createEEMarker(stamped, true);
@@ -73,6 +82,7 @@ void Panel::init(const std::string &tip_frame)
 	server.applyChanges();
 
 	jsp = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
+	
 }
 
 void Panel::createJointMarkers()
@@ -131,9 +141,51 @@ void Panel::createEEMarker(const geometry_msgs::PoseStamped &stamped, bool ok)
 	server.insert(imarker, boost::bind(&Panel::processFeedback, this, _1));
 }
 
+sensor_msgs::JointState init_message(const KDL::Chain &chain)
+{
+	sensor_msgs::JointState msg;
+	for (unsigned int i=0; i < chain.getNrOfSegments(); ++i) {
+		KDL::Segment segment = chain.getSegment(i);
+		KDL::Joint joint = segment.getJoint();
+		if (joint.getType() == KDL::Joint::JointType::None) continue;
+		msg.name.push_back(joint.getName());
+		msg.position.push_back(0);
+	}
+	return msg;
+}
+
+void update_message(sensor_msgs::JointState &msg,
+                    const boost::shared_ptr<CBF::DummyResource> &resource) {
+	msg.header.stamp = ros::Time::now();
+	Eigen::Map<Eigen::VectorXd> wrapper(msg.position.data(), msg.position.size());
+	wrapper = resource->get();
+}
+
+void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Point &p) {
+	result << p.x, p.y, p.z;
+}
+
+void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Quaternion &q) {
+	result << q.x, q.y, q.z;
+	if (result.isMuchSmallerThan(1)) {
+		result = Eigen::Vector3d::Zero();
+	} else {
+		double angle = 2. * acos(q.w);
+		result *= angle / sin(0.5 * angle);
+	}
+}
+
 void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
 {
 	marker_feedback = *feedback;
+	auto js_msg = init_message(kdl_chain);
+
+	assign(target_vector.head(3), marker_feedback.pose.position);
+	assign(target_vector.tail(3), marker_feedback.pose.orientation);
+	target->set_reference(target_vector);
+
+	update_message(js_msg, joints);
+	jsp.publish(js_msg);
 }
 
 } // end namespace rviz_cbf_plugin
