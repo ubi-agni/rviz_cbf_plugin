@@ -22,7 +22,6 @@ namespace rviz_cbf_plugin
 
 ControllerDisplay::ControllerDisplay() :
    rviz::Display(),
-   config_panel_dock_(NULL),
    imarker_display_(NULL)
 {
 	robot_description_property_ =
@@ -45,7 +44,6 @@ ControllerDisplay::ControllerDisplay() :
 
 ControllerDisplay::~ControllerDisplay()
 {
-	delete config_panel_dock_;
 	delete controller_root_;
 	delete imarker_display_;
 	robot_interaction_.reset();
@@ -58,11 +56,8 @@ void ControllerDisplay::onInitialize()
 	robot_display_->initialize(context_);
 	robot_display_->setEnabled(true);
 
-	// initialize config panel
-	rviz::WindowManagerInterface* window_context = context_->getWindowManager();
-	if (window_context) {
-		config_panel_dock_ = window_context->addPane("CBF Controller Config", config_panel_);
-	}
+	// associate config panel
+	this->setAssociatedWidget(config_panel_);
 
 	// display our interactive markers
 	imarker_display_ = context_->getDisplayFactory()->make("rviz/InteractiveMarkers");

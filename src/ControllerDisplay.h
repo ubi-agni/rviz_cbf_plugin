@@ -76,7 +76,6 @@ protected:
 
 	// the config panel
 	ConfigPanel *config_panel_;
-	rviz::PanelDockWidget *config_panel_dock_;
 };
 
 } // namespace rviz_cbf_plugin
