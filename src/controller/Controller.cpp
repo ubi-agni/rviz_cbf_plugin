@@ -1,5 +1,6 @@
 #include "Controller.h"
 #include "RobotInteraction.h"
+#include <boost/foreach.hpp>
 
 namespace rviz_cbf_plugin
 {
@@ -17,14 +18,32 @@ Controller::Controller(const QString &name, rviz::Property *parent,
 {
 }
 
-void Controller::showMarkers(bool bShow) const
+std::list<LinkMarker> Controller::getLinkMarkers() const
 {
-	root_.showMarkers(markers_);
+	std::list<LinkMarker> result;
+	BOOST_FOREACH(const Controller* child, getChildren<Controller>()) {
+		// append child list to result
+		result.splice(result.end(), child->getLinkMarkers());
+	}
+	return result;
 }
-
-void Controller::hideMarkers(bool bHide) const
+std::list<JointMarker> Controller::getJointMarkers() const
 {
-	root_.hideMarkers(markers_);
+	std::list<JointMarker> result;
+	BOOST_FOREACH(const Controller* child, getChildren<Controller>()) {
+		// append child list to result
+		result.splice(result.end(), child->getJointMarkers());
+	}
+	return result;
+}
+std::list<GenericMarker> Controller::getGenericMarkers() const
+{
+	std::list<GenericMarker> result;
+	BOOST_FOREACH(const Controller* child, getChildren<Controller>()) {
+		// append child list to result
+		result.splice(result.end(), child->getGenericMarkers());
+	}
+	return result;
 }
 
 
@@ -35,20 +54,15 @@ RootController::RootController(rviz::Property *parent,
 {
 }
 
+void RootController::emitMarkersChanged() const
+{
+	Q_EMIT markersChanged();
+}
+
 void RootController::setRobotModel(const moveit::core::RobotModelConstPtr &rm)
 {
-	robotModelChanged(rm);
+	Q_EMIT robotModelChanged(rm);
+	Q_EMIT markersChanged();
 }
-
-void RootController::showMarkers(const Controller::RegisteredMarkers &markers) const
-{
-
-}
-
-void RootController::hideMarkers(const Controller::RegisteredMarkers &markers) const
-{
-
-}
-
 
 } // namespace rviz_cbf_plugin

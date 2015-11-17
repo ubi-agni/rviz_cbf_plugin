@@ -36,10 +36,10 @@ ControllerDisplay::ControllerDisplay() :
 	config_panel_ = new ConfigPanel();
 	robot_interaction_.reset(new RobotInteraction());
 	controller_root_ = new RootController(this, robot_interaction_);
+	connect(controller_root_, SIGNAL(markersChanged()), this, SLOT(updateMarkers()));
 
 	// TODO: for testing only:
 	new PositionController(*controller_root_);
-	controller_root_->expand();
 }
 
 ControllerDisplay::~ControllerDisplay()
@@ -68,6 +68,7 @@ void ControllerDisplay::onInitialize()
 
 	// show children by default
 	this->expand();
+	controller_root_->expand();
 
 	loadRobotModel();
 }
@@ -115,8 +116,17 @@ void ControllerDisplay::onRobotModelLoaded()
 	robot_display_->update(boost::const_pointer_cast<const moveit::core::RobotState>(robot_state_));
 
 	// inform others about new model
-	robot_interaction_->setRobotModel(robot_model);
+	robot_interaction_->setRobotState(robot_state_);
 	controller_root_->setRobotModel(robot_model);
+}
+
+void ControllerDisplay::updateMarkers()
+{
+	robot_interaction_->clearMarkerList();
+	robot_interaction_->addMarkers(controller_root_->getLinkMarkers());
+	robot_interaction_->addMarkers(controller_root_->getJointMarkers());
+	robot_interaction_->addMarkers(controller_root_->getGenericMarkers());
+	robot_interaction_->publishMarkers();
 }
 
 void ControllerDisplay::onEnable()
@@ -141,6 +151,7 @@ void ControllerDisplay::update(float wall_dt, float ros_dt)
 	Display::update(wall_dt, ros_dt);
 
 	// TODO perform controller step and then update robot_state and robot_display_
+	robot_interaction_->updateMarkerPoses();
 }
 
 void ControllerDisplay::fixedFrameChanged()

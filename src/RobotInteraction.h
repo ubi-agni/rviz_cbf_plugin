@@ -1,7 +1,9 @@
 #pragma once
 
+#include "interaction_types.h"
+
 #include <moveit/robot_model/robot_model.h>
-#include <visualization_msgs/InteractiveMarkerControl.h>
+#include <moveit/robot_state/robot_state.h>
 #include <boost/function.hpp>
 
 namespace interactive_markers {
@@ -30,47 +32,40 @@ public:
 	static const std::string INTERACTIVE_MARKER_TOPIC;
 
 	RobotInteraction(const std::string &ns = "");
-	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
+	void setRobotState(const moveit::core::RobotStateConstPtr &rs);
 
 	const std::string& getServerTopic(void) const {return topic_;}
 
+	void clearMarkerList();
+	void addMarkers(const std::list<LinkMarker> &markers);
+	void addMarkers(const std::list<JointMarker> &markers);
+	void addMarkers(const std::list<GenericMarker> &markers);
+	void publishMarkers();
+	void updateMarkerPoses();
 
-	/** add a generic interactive control
-	 * @param marker_name defines the marker, the control should be added too
-	 * @param control_name can be one of view, tx,ty,tz, rx,ry,rz, or be user defined
-	 * @param control
-	 * @param callback
-	 */
-	CallbackID addGenericControl(const std::string& marker_name,
-	                             const std::string& control_name,
-	                             visualization_msgs::InteractiveMarkerControl &control,
-	                             GenericCallBackFn callback);
-	CallbackID addPositionControl(const std::string& marker_name,
-	                              PositionCallbackFn callback,
-	                              unsigned int axes = AXES::ALL);
-	CallbackID addOrientationControl(const std::string& marker_name,
-	                                 OrientationCallbackFn callback,
-	                                 unsigned int axes = AXES::ALL);
-private:
-	/** Retrieve a unique ID for a specific controller callback
-	 *
-	 * The ID is used to enable, disable, and remove specific callbacks
-	 */
-	CallbackID getCallbackId();
+protected:
+	struct MarkerDescription;
+	typedef boost::shared_ptr<MarkerDescription> MarkerDescriptionPtr;
+
+	MarkerDescriptionPtr getMarkerDescription(const std::string &name) const;
+	MarkerDescriptionPtr getOrCreateMarkerDescription(const std::string &name);
+	MarkerDescriptionPtr getUniqueMarkerDescription(const std::string &name);
+
+	geometry_msgs::Pose getLinkPose(const std::string &link);
 
 private:
-	robot_model::RobotModelConstPtr robot_model_;
+	void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+	void createLinkControls(MarkerDescriptionPtr &desc);
+	void createJointControls(MarkerDescriptionPtr &desc);
+
+private:
+	moveit::core::RobotStateConstPtr robot_state_;
 	interactive_markers::InteractiveMarkerServer *ims_;
 	std::string topic_;
 
-	// map control name (view, tx,ty,tz, rx,ry,rz, ...) to interactive marker control
-	typedef std::map<std::string, visualization_msgs::InteractiveMarkerControl> ControlsMap;
-	typedef std::map<std::string, ControlsMap> markers_;
-
-	CallbackID nextId_;
-	std::set<CallbackID> active_callbacks_;
-	std::set<CallbackID> inactive_callbacks_;
-	std::map<CallbackID, GenericCallBackFn> callbacks_;
+	// map marker name onto marker description
+	typedef std::map<std::string, MarkerDescriptionPtr> MarkerMap;
+	MarkerMap markers_;
 };
 
 } // namespace rviz_cbf_plugin

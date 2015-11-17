@@ -19,6 +19,14 @@ PositionController::PositionController(const Controller &parent,
 	        this, SLOT(setRobotModel(moveit::core::RobotModelConstPtr)));
 }
 
+std::list<LinkMarker> PositionController::getLinkMarkers() const
+{
+	auto result = Controller::getLinkMarkers(); // fetch markers from children
+	result.push_back(LinkMarker(link_name_, ALL,
+	                            boost::bind(&PositionController::markerCallback, this, _1)));
+	return result;
+}
+
 void PositionController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 {
 	link_name_property_->setRobotModel(rm);
@@ -27,7 +35,6 @@ void PositionController::setRobotModel(const robot_model::RobotModelConstPtr &rm
 			// use first end effector as default
 			const auto links = rm->getLinkModels();
 			BOOST_FOREACH(const moveit::core::LinkModel *link, links) {
-				// TODO: fix finding end effector.
 				if (link->getChildJointModels().empty()) {
 					setLink(link->getName());
 					break;
@@ -49,12 +56,14 @@ void PositionController::setLink(const std::string &name)
 	link_name_ = name;
 	link_name_property_->setValue(QString::fromStdString(link_name_));
 
-	emit linkNameChanged(link_name_);
-
-	// TODO	addPositionMarker(link_name_, boost::bind(&PositionController::markerCallback, this, _1));
+	getRoot().emitMarkersChanged();
 }
 
-void PositionController::markerCallback(const Eigen::Vector3d &position)
+void PositionController::markerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr) const
+{
+}
+
+void PositionController::setTarget(const Eigen::Vector3d &pos)
 {
 // TODO	target_->set_reference(position);
 }

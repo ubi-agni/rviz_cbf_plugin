@@ -43,8 +43,8 @@ public:
 	void update(float wall_dt, float ros_dt);
 	void reset();
 
-private Q_SLOTS:
-	void changedRobotDescription();
+public Q_SLOTS:
+	void updateMarkers();
 
 protected:
 	void onInitialize();
@@ -55,6 +55,9 @@ protected:
 	void loadRobotModel();
 	void onRobotModelLoaded();
 	void initRobotState();
+
+private Q_SLOTS:
+	void changedRobotDescription();
 
 protected:
 	ros::NodeHandle node_handle_;
