@@ -11,9 +11,7 @@
 # include <srdfdom/model.h>
 # include <kdl/chain.hpp>
 # include <kdl/tree.hpp>
-
-# include <cbf/dummy_reference.h>
-# include <cbf/dummy_resource.h>
+# include <tf/tf.h>
 #endif
 
 namespace vm = visualization_msgs;
@@ -35,8 +33,9 @@ public:
 protected:
 	void init(const std::string &tip_frame);
 	void createJointMarkers();
-	void createJointMarker(const KDL::Segment &segment);
+	void createJointMarker(const KDL::Segment &segment, int i);
 	void createEEMarker(const geometry_msgs::PoseStamped &stamped, bool ok);
+	void update_message(sensor_msgs::JointState &msg, const double angle);
 	void processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback);
 
 private:
@@ -46,9 +45,9 @@ private:
 	vm::InteractiveMarkerFeedback marker_feedback;
 
 	KDL::Chain kdl_chain;
-	CBF::DummyResourcePtr  joints;
-	CBF::DummyReferencePtr target;
-	CBF::FloatVector target_vector;
+
+	typedef std::pair<tf::Pose, int> joint_pose;
+	std::map<std::string, joint_pose> jp_last;
 
 	ros::Publisher jsp;
 };

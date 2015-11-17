@@ -2,8 +2,8 @@
 
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
-#include <tf/tf.h>
 #include <tf_conversions/tf_kdl.h>
+#include <tf/transform_datatypes.h>
 
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/frames.hpp>
@@ -67,13 +67,6 @@ void Panel::init(const std::string &tip_frame)
 	tf::poseTFToMsg(tf_pose, stamped.pose);
 	marker_feedback.pose = stamped.pose;
 
-	// reference
-	target = boost::make_shared<CBF::DummyReference>(1,6);
-	// joint angle resource
-	joints = boost::make_shared<CBF::DummyResource>(kdl_chain.getNrOfJoints());
-
-	target_vector.resize(target->dim());
-
 	server.clear();
 	createEEMarker(stamped, true);
 	createJointMarkers();
@@ -87,11 +80,11 @@ void Panel::createJointMarkers()
 {
 	for (unsigned int i=0; i < kdl_chain.getNrOfSegments(); ++i) {
 		const KDL::Segment &segment = kdl_chain.getSegment(i);
-		createJointMarker(segment);
+		createJointMarker(segment, i);
 	}
 }
 
-void Panel::createJointMarker(const KDL::Segment &segment)
+void Panel::createJointMarker(const KDL::Segment &segment, int i)
 {
 	const KDL::Joint  &joint = segment.getJoint();
 	const std::string &link_name = segment.getName();
@@ -101,6 +94,10 @@ void Panel::createJointMarker(const KDL::Segment &segment)
 
 	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("JJ#" + joint_name, stamped);
 	double scale = imarker.scale = 0.2;
+
+	tf::poseMsgToTF(stamped.pose, jp_last["JJ#"+joint_name].first);
+	jp_last["JJ#" + joint_name].second = i;
+	
 
 	switch (joint.getType()) {
 	case KDL::Joint::RotX: addOrientationControls(imarker, AXES::X); break;
@@ -152,25 +149,12 @@ sensor_msgs::JointState init_message(const KDL::Chain &chain)
 	return msg;
 }
 
-void update_message(sensor_msgs::JointState &msg,
-                    const boost::shared_ptr<CBF::DummyResource> &resource) {
+void Panel::update_message(sensor_msgs::JointState &msg,
+                    const double angle) {
 	msg.header.stamp = ros::Time::now();
-	Eigen::Map<Eigen::VectorXd> wrapper(msg.position.data(), msg.position.size());
-	wrapper = resource->get();
-}
-
-void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Point &p) {
-	result << p.x, p.y, p.z;
-}
-
-void assign (Eigen::Ref<Eigen::Vector3d> result, const geometry_msgs::Quaternion &q) {
-	result << q.x, q.y, q.z;
-	if (result.isMuchSmallerThan(1)) {
-		result = Eigen::Vector3d::Zero();
-	} else {
-		double angle = 2. * acos(q.w);
-		result *= angle / sin(0.5 * angle);
-	}
+	int i = jp_last[marker_feedback.marker_name].second;
+	msg.position[i] = angle;
+	std::cout<<msg.name[i]<<std::endl<<msg.position[i]<<std::endl<<std::endl;
 }
 
 void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
@@ -178,11 +162,15 @@ void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedba
 	marker_feedback = *feedback;
 	auto js_msg = init_message(kdl_chain);
 
-	assign(target_vector.head(3), marker_feedback.pose.position);
-	assign(target_vector.tail(3), marker_feedback.pose.orientation);
-	target->set_reference(target_vector);
+	tf::Transform tmp;
+	tf::poseMsgToTF(marker_feedback.pose, tmp);
 
-	update_message(js_msg, joints);
+	double angle = jp_last[marker_feedback.marker_name].first.getRotation().angleShortestPath(tmp.getRotation());
+	update_message(js_msg, angle);
+	std::cout<<std::endl<<angle<<std::endl;
+
+	tf::poseMsgToTF(marker_feedback.pose, jp_last[marker_feedback.marker_name].first);
+	
 	jsp.publish(js_msg);
 }
 
