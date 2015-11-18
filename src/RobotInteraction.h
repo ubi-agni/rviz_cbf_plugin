@@ -43,6 +43,9 @@ public:
 	void publishMarkers();
 	void updateMarkerPoses();
 
+	static double computeLinkMarkerSize(const std::string &link,
+	                                    const moveit::core::RobotState &rs);
+
 protected:
 	struct MarkerDescription;
 	typedef boost::shared_ptr<MarkerDescription> MarkerDescriptionPtr;

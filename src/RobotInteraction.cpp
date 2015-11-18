@@ -3,6 +3,7 @@
 
 #include <interactive_markers/interactive_marker_server.h>
 #include <visualization_msgs/InteractiveMarkerFeedback.h>
+#include <moveit/robot_model/link_model.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <boost/function.hpp>
 #include <boost/foreach.hpp>
@@ -21,6 +22,7 @@ struct RobotInteraction::MarkerDescription
 {
 	MarkerDescription(const std::string &name) {
 		imarker_.name = name;
+		imarker_.scale = 0;
 		type_ = NONE;
 	}
 
@@ -51,6 +53,25 @@ geometry_msgs::Pose RobotInteraction::getLinkPose(const std::string &link)
 	geometry_msgs::Pose result;
 	tf::poseEigenToMsg(robot_state_->getGlobalLinkTransform(link), result);
 	return result;
+}
+
+static const double DEFAULT_SCALE = 0.25;
+double RobotInteraction::computeLinkMarkerSize(const std::string &link,
+                                               const rm::RobotState& rs)
+{
+	const rm::LinkModel *lm = rs.getLinkModel(link);
+	double size = 0;
+
+	// process kinematic chain upwards to find a link with some non-empty shape
+	while (lm && size == 0) {
+		const Eigen::Vector3d &ext = lm->getShapeExtentsAtOrigin();
+		// link diameter
+		size = ext.norm();
+		lm = lm->getParentLinkModel();
+	}
+	if (!lm) return DEFAULT_SCALE;
+
+	return 1.0 * size;
 }
 
 /// return an existing marker description or nullptr
@@ -84,6 +105,9 @@ RobotInteraction::getUniqueMarkerDescription(const std::string &name)
 /// create / augment marker descriptions from @param markers
 void RobotInteraction::addMarkers(const std::list<LinkMarker> &markers)
 {
+	rm::RobotState default_state(robot_state_->getRobotModel());
+	default_state.setToDefaultValues();
+
 	BOOST_FOREACH(const LinkMarker &m, markers) {
 		const rm::LinkModel *link = robot_state_->getLinkModel(m.link);
 		if (!link) {
@@ -91,7 +115,9 @@ void RobotInteraction::addMarkers(const std::list<LinkMarker> &markers)
 			continue;
 		}
 		MarkerDescriptionPtr marker = getOrCreateMarkerDescription("LL_" + m.link);
-		marker->imarker_.header.frame_id = m.link;
+		marker->imarker_.header.frame_id = robot_state_->getRobotModel()->getRootLinkName();
+		if (marker->imarker_.scale == 0)
+			marker->imarker_.scale = computeLinkMarkerSize(m.link, default_state);
 		marker->type_ |= m.type;
 		marker->feedback_cbs_.push_back(m.feedback_cb);
 		marker->pose_cb_ = boost::bind(&RobotInteraction::getLinkPose, this, m.link);
