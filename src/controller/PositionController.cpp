@@ -27,19 +27,36 @@ std::list<LinkMarker> PositionController::getLinkMarkers() const
 	return result;
 }
 
+static
+unsigned int computeDepthFromRoot(const moveit::core::LinkModel *link) {
+	unsigned int result = 0;
+	while (link) {
+		++result;
+		link = link->getParentLinkModel();
+	}
+	return result;
+}
+
 void PositionController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 {
 	link_name_property_->setRobotModel(rm);
-	if (!rm->getLinkModel(link_name_)) {
+	if (!rm->hasLinkModel(link_name_)) {
 		if (link_name_.empty()) {
-			// use first end effector as default
+			// search for end-effector that is furthest away from root joint
 			const auto links = rm->getLinkModels();
+			const moveit::core::LinkModel *eef = NULL;
+			unsigned int maxDepth = 0;
 			BOOST_FOREACH(const moveit::core::LinkModel *link, links) {
 				if (link->getChildJointModels().empty()) {
-					setLink(link->getName());
-					break;
+					unsigned int depth = computeDepthFromRoot(link);
+					if (depth > maxDepth || eef == NULL) {
+						eef = link;
+						maxDepth = depth;
+					}
 				}
 			}
+			if (eef) setLink(eef->getName());
+			// TODO else setStatus(Error, "link", "link not found");
 		}
 	}
 }
