@@ -20,9 +20,14 @@ enum InteractionType {
 	RY = 16,
 	RZ = 32,
 
-	POSITION = TX | TY | TZ,
-	ORIENTATION = RX | RY | RZ,
-	ALL = POSITION | ORIENTATION,
+	MOVE_AXIS = TX,
+	ROTATE_AXIS = RX,
+	MOVE_PLANE = TY | TZ,
+	MOVE_ROTATE = MOVE_PLANE | RX,
+
+	MOVE_3D = TX | TY | TZ,
+	ROTATE_3D = RX | RY | RZ,
+	MOVE_ROTATE_3D = MOVE_3D | ROTATE_3D,
 };
 
 typedef boost::function<void(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)> FeedbackFn;

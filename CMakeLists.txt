@@ -128,6 +128,7 @@ add_library(${PROJECT_NAME}
    src/ControllerDisplay.cpp
    src/ConfigPanel.cpp
    src/RobotInteraction.cpp
+   src/interaction_types.h
    src/plugin_init.cpp
 
    src/controller/properties.cpp

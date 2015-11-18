@@ -43,8 +43,8 @@ public:
 	void publishMarkers();
 	void updateMarkerPoses();
 
-	static double computeLinkMarkerSize(const std::string &link,
-	                                    const moveit::core::RobotState &rs);
+	double computeLinkMarkerSize(const std::string &target_link_name,
+	                             std::string *actual_link_name = NULL);
 
 protected:
 	struct MarkerDescription;
@@ -54,7 +54,11 @@ protected:
 	MarkerDescriptionPtr getOrCreateMarkerDescription(const std::string &name);
 	MarkerDescriptionPtr getUniqueMarkerDescription(const std::string &name);
 
+	/// get the current pose of the link w.r.t. root frame
 	geometry_msgs::Pose getLinkPose(const std::string &link);
+	/// add interactive control based on link geometry
+	bool addLinkControl(const std::string &link, unsigned int interaction,
+	                    visualization_msgs::InteractiveMarker &im) const;
 
 private:
 	void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);

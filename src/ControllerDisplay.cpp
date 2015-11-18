@@ -172,8 +172,7 @@ void ControllerDisplay::save(rviz::Config config) const
 
 void ControllerDisplay::initRobotState()
 {
-	robot_state_->setVariablePositions
-	      (std::vector<double>(robot_state_->getVariableCount()));
+	robot_state_->setToDefaultValues();
 	// update pose of all links
 	robot_state_->update();
 }
