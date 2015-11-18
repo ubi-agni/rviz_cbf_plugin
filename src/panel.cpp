@@ -91,6 +91,7 @@ void Panel::createJointMarker(const KDL::Segment &segment, int i)
 	const std::string &joint_name = joint.getName();
 	geometry_msgs::PoseStamped stamped;
 	stamped.header.frame_id = link_name;
+	stamped.pose.orientation.w = 1;
 
 	visualization_msgs::InteractiveMarker imarker = createInteractiveMarker("JJ#" + joint_name, stamped);
 	double scale = imarker.scale = 0.2;
@@ -154,7 +155,6 @@ void Panel::update_message(sensor_msgs::JointState &msg,
 	msg.header.stamp = ros::Time::now();
 	int i = jp_last[marker_feedback.marker_name].second;
 	msg.position[i] = angle;
-	std::cout<<msg.name[i]<<std::endl<<msg.position[i]<<std::endl<<std::endl;
 }
 
 void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedback )
@@ -167,10 +167,7 @@ void Panel::processFeedback( const vm::InteractiveMarkerFeedbackConstPtr &feedba
 
 	double angle = jp_last[marker_feedback.marker_name].first.getRotation().angleShortestPath(tmp.getRotation());
 	update_message(js_msg, angle);
-	std::cout<<std::endl<<angle<<std::endl;
-
-	tf::poseMsgToTF(marker_feedback.pose, jp_last[marker_feedback.marker_name].first);
-	
+	std::cout << angle << " ";
 	jsp.publish(js_msg);
 }
 
