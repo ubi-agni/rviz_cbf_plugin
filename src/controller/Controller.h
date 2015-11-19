@@ -5,10 +5,15 @@
 #include <map>
 #include <string>
 
+#include <kdl/tree.hpp>
+
 #include <moveit/macros/class_forward.h>
 namespace moveit { namespace core {
 MOVEIT_CLASS_FORWARD(RobotModel);
 }}
+namespace CBF {
+MOVEIT_CLASS_FORWARD(PrimitiveController);
+}
 namespace rviz_cbf_plugin
 {
 
@@ -23,7 +28,10 @@ public:
 
 	const Controller* getParent() const {return parent_;}
 	const RootController& getRoot() const {return root_;}
+	virtual CBF::PrimitiveControllerPtr getController() = 0;
+	virtual void step(const moveit::core::RobotStatePtr &rs) = 0;
 
+	/// return markers of all sub controllers
 	virtual std::list<LinkMarker> getLinkMarkers() const;
 	virtual std::list<JointMarker> getJointMarkers() const;
 	virtual std::list<GenericMarker> getGenericMarkers() const;
@@ -44,7 +52,10 @@ class RootController : public Controller
 
 public:
 	explicit RootController(rviz::Property *parent, RobotInteractionPtr &ri);
+	const KDL::Tree& getKDLTree() const {return kdl_tree_;}
+	CBF::PrimitiveControllerPtr getController();
 	void emitMarkersChanged() const;
+	void step(const moveit::core::RobotStatePtr &rs);
 
 Q_SIGNALS:
 	void robotModelChanged(const moveit::core::RobotModelConstPtr &rm);
@@ -55,6 +66,7 @@ public Q_SLOTS:
 
 private:
 	RobotInteractionPtr ri_;
+	KDL::Tree kdl_tree_;
 };
 
 template<class Type>

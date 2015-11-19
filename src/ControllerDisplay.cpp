@@ -151,6 +151,7 @@ void ControllerDisplay::update(float wall_dt, float ros_dt)
 	Display::update(wall_dt, ros_dt);
 
 	robot_interaction_->processCallbacks();
+	controller_root_->step(robot_state_);
 	robot_state_->update();
 	robot_display_->update(robot_state_);
 	robot_interaction_->updateMarkerPoses();

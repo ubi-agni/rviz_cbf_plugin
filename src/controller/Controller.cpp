@@ -2,6 +2,10 @@
 #include "RobotInteraction.h"
 #include <boost/foreach.hpp>
 
+#include <kdl_parser/kdl_parser.hpp>
+#include <cbf/primitive_controller.h>
+#include <cbf/dummy_resource.h>
+
 namespace rviz_cbf_plugin
 {
 
@@ -61,8 +65,27 @@ void RootController::emitMarkersChanged() const
 
 void RootController::setRobotModel(const moveit::core::RobotModelConstPtr &rm)
 {
+	if (!kdl_parser::treeFromUrdfModel(*rm->getURDF(), kdl_tree_)) {
+		// TODO: proper error handling
+		return;
+	}
+
 	Q_EMIT robotModelChanged(rm);
 	Q_EMIT markersChanged();
+}
+
+CBF::PrimitiveControllerPtr RootController::getController()
+{
+	auto children = getChildren<Controller>();
+	if (children.empty()) return CBF::PrimitiveControllerPtr();
+	else return children.front()->getController();
+}
+
+void RootController::step(const moveit::core::RobotStatePtr &rs)
+{
+	auto children = getChildren<Controller>();
+	if (children.empty()) return;
+	children.front()->step(rs);
 }
 
 } // namespace rviz_cbf_plugin
