@@ -122,7 +122,7 @@ void ControllerDisplay::onRobotModelLoaded()
 
 void ControllerDisplay::updateMarkers()
 {
-	robot_interaction_->clearMarkerList();
+	robot_interaction_->clearMarkerDescriptions();
 	robot_interaction_->addMarkers(controller_root_->getLinkMarkers());
 	robot_interaction_->addMarkers(controller_root_->getJointMarkers());
 	robot_interaction_->addMarkers(controller_root_->getGenericMarkers());
@@ -150,7 +150,9 @@ void ControllerDisplay::update(float wall_dt, float ros_dt)
 		imarker_display_->update(wall_dt, ros_dt);
 	Display::update(wall_dt, ros_dt);
 
-	// TODO perform controller step and then update robot_state and robot_display_
+	robot_interaction_->processCallbacks();
+	robot_state_->update();
+	robot_display_->update(robot_state_);
 	robot_interaction_->updateMarkerPoses();
 }
 

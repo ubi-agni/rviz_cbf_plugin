@@ -2,6 +2,7 @@
 
 #include "interaction_types.h"
 
+#include <visualization_msgs/InteractiveMarkerFeedback.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 #include <boost/function.hpp>
@@ -20,13 +21,15 @@ namespace rviz_cbf_plugin
  * controls.
  * A controller registers one or more InteractionHandler objects each of
  * which maintains functions to (re)create interactive markers.
+ *
+ * Markers are internally collected in a map of MarkerDescriptions.
+ * Only if they will be published to the InteractiveMarkerServer, we create
+ * interactive markers from the descriptions.
+ * This allows to summarizes several controls requested by different controllers
+ * into a single interactive marker
  */
 class RobotInteraction
 {
-public:
-	typedef boost::function<void(const int&)> GenericCallBackFn;
-	typedef unsigned int CallbackID;
-	enum AXES {X = 1, Y = 2, Z = 4, ALL = X | Y | Z};
 public:
 	/// The topic name on which the internal InteractiveMarkerServer operates
 	static const std::string INTERACTIVE_MARKER_TOPIC;
@@ -36,12 +39,18 @@ public:
 
 	const std::string& getServerTopic(void) const {return topic_;}
 
-	void clearMarkerList();
+	/// clear list of marker descriptions
+	void clearMarkerDescriptions();
+	/// add marker descriptions
 	void addMarkers(const std::list<LinkMarker> &markers);
 	void addMarkers(const std::list<JointMarker> &markers);
 	void addMarkers(const std::list<GenericMarker> &markers);
+	/// create actual interactive markers from descriptions and publish them
 	void publishMarkers();
+	/// set marker poses from current robot state
 	void updateMarkerPoses();
+	/// process poseUpdates received so far
+	void processCallbacks();
 
 	double computeLinkMarkerSize(const std::string &target_link_name,
 	                             std::string *actual_link_name = NULL);
@@ -57,8 +66,10 @@ protected:
 	/// get the current pose of the link w.r.t. root frame
 	geometry_msgs::Pose getLinkPose(const std::string &link);
 	/// add interactive control based on link geometry
-	bool addLinkControl(const std::string &link, unsigned int interaction,
+	bool addLinkControl(const std::string &link, unsigned int interaction_mode,
 	                    visualization_msgs::InteractiveMarker &im) const;
+	bool addSphereControl(unsigned int interaction_mode,
+	                      visualization_msgs::InteractiveMarker &im) const;
 
 private:
 	void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);

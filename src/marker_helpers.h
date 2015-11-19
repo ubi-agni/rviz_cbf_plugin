@@ -38,7 +38,7 @@ void operator<< (geometry_msgs::Quaternion &quat, const Eigen::Quaterniond &q);
 geometry_msgs::Pose& operator<< (geometry_msgs::Pose &pose, const Eigen::Vector3d &p);
 geometry_msgs::Pose& operator<< (geometry_msgs::Pose &pose, const Eigen::Quaterniond &q);
 
-void operator<<(std_msgs::ColorRGBA& color, const QColor &c);
+void operator<<(std_msgs::ColorRGBA &color, const QColor &c);
 visualization_msgs::Marker& operator<<(visualization_msgs::Marker &marker, const Eigen::Vector3d &p);
 visualization_msgs::Marker& operator<<(visualization_msgs::Marker &marker, const Eigen::Quaterniond &q);
 visualization_msgs::Marker& operator<<(visualization_msgs::Marker &marker, const QColor &c);

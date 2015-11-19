@@ -2,6 +2,7 @@
 #include "properties.h"
 
 #include <rviz/properties/editable_enum_property.h>
+#include <eigen_conversions/eigen_msg.h>
 #include <moveit/robot_model/robot_model.h>
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
@@ -76,11 +77,14 @@ void PositionController::setLink(const std::string &name)
 	getRoot().emitMarkersChanged();
 }
 
-void PositionController::markerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr) const
+void PositionController::markerCallback(const geometry_msgs::Pose &pose) const
 {
+	Eigen::Affine3d tm;
+	tf::poseMsgToEigen(pose, tm);
+	const_cast<PositionController*>(this)->setTarget(tm.translation());
 }
 
-void PositionController::setTarget(const Eigen::Vector3d &pos)
+void PositionController::setTarget(const Eigen::Vector3d &position)
 {
 // TODO	target_->set_reference(position);
 }

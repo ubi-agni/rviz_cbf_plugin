@@ -9,6 +9,7 @@
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <QColor>
 
 namespace vm = visualization_msgs;
 namespace rm = moveit::core;
@@ -24,13 +25,15 @@ struct RobotInteraction::MarkerDescription
 		imarker_.name = name;
 		imarker_.scale = 0;
 		type_ = NONE;
+		dirty_ = false;
 	}
 
 	vm::InteractiveMarker imarker_;
 	unsigned int type_; ///< interaction type
-	std::string link_control_; ///< name of link to use for direct interaction
-	std::vector<FeedbackFn> feedback_cbs_; ///< list of feedback callbacks
-	GetPoseFn pose_cb_; ///< function pointer to retrieve updated imarker pose
+	std::string link_control_; ///< name of link to use for direct link interaction
+	bool dirty_; ///< did we received a pose update?
+	std::vector<PoseFeedbackFn> feedback_cbs_; ///< list of feedback callbacks
+	GetMarkerPoseFn pose_cb_; ///< function pointer to retrieve updated imarker pose
 };
 
 RobotInteraction::RobotInteraction(const std::string &ns)
@@ -44,7 +47,7 @@ void RobotInteraction::setRobotState(const moveit::core::RobotStateConstPtr &rs)
 	robot_state_ = rs;
 }
 
-void RobotInteraction::clearMarkerList()
+void RobotInteraction::clearMarkerDescriptions()
 {
 	markers_.clear();
 }
@@ -65,7 +68,7 @@ double RobotInteraction::computeLinkMarkerSize(const std::string &target_link_na
 
 	while (lm) {
 		const Eigen::Vector3d &ext = lm->getShapeExtentsAtOrigin();
-		size = ext.norm(); // link diameter
+		size = ext.maxCoeff();
 		if (size > 0) break;
 
 		// process kinematic chain upwards (but only following fixed joints)
@@ -80,35 +83,43 @@ double RobotInteraction::computeLinkMarkerSize(const std::string &target_link_na
 	if (actual_link_name)
 		*actual_link_name = lm->getName();
 
-	return size;
+	return 2.01 * size;
 }
 
 // test if all bits in test are set in overset too
-static bool isSubSet(unsigned int test, unsigned int overset)
+static
+bool isSubSet(unsigned int test, unsigned int overset)
 {
 	return (test & overset == test);
 }
 
-/// add direct mouse control of the link
+static
+unsigned int getInteractionMode(unsigned int interaction_types)
+{
+	if (isSubSet(interaction_types, MOVE_ROTATE_3D)) return vm::InteractiveMarkerControl::MOVE_ROTATE_3D;
+	else if (isSubSet(interaction_types, ROTATE_3D)) return vm::InteractiveMarkerControl::ROTATE_3D;
+	else if (isSubSet(interaction_types, MOVE_3D))   return vm::InteractiveMarkerControl::MOVE_3D;
+
+	else if (isSubSet(interaction_types, MOVE_ROTATE)) return vm::InteractiveMarkerControl::MOVE_ROTATE;
+	else if (isSubSet(interaction_types, MOVE_PLANE))  return vm::InteractiveMarkerControl::MOVE_PLANE;
+
+	else if (isSubSet(interaction_types, ROTATE_AXIS)) return vm::InteractiveMarkerControl::ROTATE_AXIS;
+	else if (isSubSet(interaction_types, MOVE_AXIS))   return vm::InteractiveMarkerControl::MOVE_AXIS;
+	return 0;
+}
+
+/// add direct mouse control of the link geometry
 bool RobotInteraction::addLinkControl(const std::string &link,
-                                      unsigned int interaction,
+                                      unsigned int interaction_mode,
                                       vm::InteractiveMarker &im) const
 {
+	if (interaction_mode == 0)
+		return false;
 	if (!robot_state_->getRobotModel()->hasLinkModel(link))
 		return false;
 
 	vm::InteractiveMarkerControl control;
-	if (isSubSet(interaction, MOVE_ROTATE_3D)) control.interaction_mode = MOVE_ROTATE_3D;
-	else if (isSubSet(interaction, ROTATE_3D)) control.interaction_mode = ROTATE_3D;
-	else if (isSubSet(interaction, MOVE_3D))   control.interaction_mode = MOVE_3D;
-
-	else if (isSubSet(interaction, MOVE_ROTATE)) control.interaction_mode = MOVE_ROTATE;
-	else if (isSubSet(interaction, MOVE_PLANE))  control.interaction_mode = MOVE_PLANE;
-
-	else if (isSubSet(interaction, ROTATE_AXIS)) control.interaction_mode = ROTATE_AXIS;
-	else if (isSubSet(interaction, MOVE_AXIS))   control.interaction_mode = MOVE_AXIS;
-
-	else return false; // no compatible interaction requested
+	control.interaction_mode = interaction_mode;
 
 	visualization_msgs::MarkerArray marker_array;
 	std::vector<std::string> link_names; link_names.push_back(link);
@@ -116,15 +127,45 @@ bool RobotInteraction::addLinkControl(const std::string &link,
 	if (marker_array.markers.empty()) return false;
 
 	// compute offset transforms from link to marker
-	Eigen::Affine3d tf_root_to_link = robot_state_->getGlobalLinkTransform(link);
+	Eigen::Affine3d tf_link_to_root = robot_state_->getGlobalLinkTransform(link).inverse();
 	for(auto m = marker_array.markers.begin(), end = marker_array.markers.end();
 	    m != end; ++m) {
 		m->mesh_use_embedded_materials = true;
+		m->header.frame_id = link;
+		Eigen::Affine3d tf_root_to_mesh;
+		tf::poseMsgToEigen(m->pose, tf_root_to_mesh);
+		tf::poseEigenToMsg(tf_link_to_root * tf_root_to_mesh, m->pose);
 		control.markers.push_back(*m);
 	}
 
 	im.controls.push_back(control);
 	return true;
+}
+
+/// add mouse control for a sphere at the end effector
+bool RobotInteraction::addSphereControl(unsigned int interaction_mode,
+                                        visualization_msgs::InteractiveMarker &im) const
+{
+	if (interaction_mode == 0)
+		return false;
+
+	vm::InteractiveMarkerControl control;
+	control.interaction_mode = interaction_mode;
+
+	vm::Marker marker;
+	marker.type = vm::Marker::SPHERE;
+	marker.pose.orientation.w = 1;
+	marker.scale.x = marker.scale.y = marker.scale.z = 0.5 * im.scale;
+	QColor c("cyan");
+	marker.color.r = c.redF();
+	marker.color.g = c.greenF();
+	marker.color.b = c.blueF();
+	marker.color.a = 0.5;
+	control.markers.push_back(marker);
+
+	im.controls.push_back(control);
+	return true;
+
 }
 
 /// return an existing marker description or nullptr
@@ -212,9 +253,12 @@ void RobotInteraction::createLinkControls(MarkerDescriptionPtr &desc)
 {
 	// TODO link control, select interaction mode from desc->type
 	desc->imarker_.controls.empty();
-	marker_helpers::addPositionControls(desc->imarker_, AXES::ALL);
-	marker_helpers::addOrientationControls(desc->imarker_, AXES::ALL);
-	addLinkControl(desc->link_control_, desc->type_, desc->imarker_);
+	marker_helpers::addPositionControls(desc->imarker_, marker_helpers::AXES::ALL);
+	marker_helpers::addOrientationControls(desc->imarker_, marker_helpers::AXES::ALL);
+
+	unsigned int interaction_mode = getInteractionMode(desc->type_);
+	addSphereControl(interaction_mode, desc->imarker_);
+//	addLinkControl(desc->link_control_, interaction_mode, desc->imarker_);
 }
 
 /// create controls for a link
@@ -233,6 +277,7 @@ void RobotInteraction::publishMarkers()
 			createLinkControls(desc);
 		else if (boost::algorithm::starts_with(desc->imarker_.name, "LL_"))
 			createJointControls(desc);
+		desc->dirty_ = true;
 		ims_->insert(desc->imarker_, boost::bind(&RobotInteraction::processFeedback, this, _1));
 	}
 	ims_->applyChanges();
@@ -246,15 +291,27 @@ void RobotInteraction::updateMarkerPoses()
 	ims_->applyChanges();
 }
 
-void RobotInteraction::processFeedback(const vm::InteractiveMarkerFeedbackConstPtr &feedback)
+void RobotInteraction::processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
-	MarkerDescriptionPtr marker = getMarkerDescription(feedback->marker_name);
-	if (!marker) {
+	if (feedback->event_type != vm::InteractiveMarkerFeedback::POSE_UPDATE)
+		return;
+
+	MarkerDescriptionPtr desc = getMarkerDescription(feedback->marker_name);
+	if (!desc) {
 		ROS_WARN_STREAM("unknown marker " << feedback->marker_name);
 		return;
 	}
-	BOOST_FOREACH(auto cb, marker->feedback_cbs_) {
-		cb(feedback);
+	desc->imarker_.pose = feedback->pose;
+	desc->dirty_ = true;
+}
+void RobotInteraction::processCallbacks()
+{
+	// call feedback callbacks to update targets of controllers
+	BOOST_FOREACH(MarkerDescriptionPtr desc, markers_ | boost::adaptors::map_values) {
+		if (!desc->dirty_) continue;
+		BOOST_FOREACH(auto cb, desc->feedback_cbs_)
+			cb(desc->imarker_.pose);
+		desc->dirty_ = false;
 	}
 }
 

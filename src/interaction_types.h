@@ -1,7 +1,6 @@
 #pragma once
 
 #include <visualization_msgs/InteractiveMarker.h>
-#include <visualization_msgs/InteractiveMarkerFeedback.h>
 #include <boost/function.hpp>
 
 #include <moveit/macros/class_forward.h>
@@ -30,13 +29,13 @@ enum InteractionType {
 	MOVE_ROTATE_3D = MOVE_3D | ROTATE_3D,
 };
 
-typedef boost::function<void(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)> FeedbackFn;
-typedef boost::function<geometry_msgs::Pose()> GetPoseFn;
+typedef boost::function<void(const geometry_msgs::Pose&)> PoseFeedbackFn;
+typedef boost::function<geometry_msgs::Pose()> GetMarkerPoseFn;
 
 /// description of a marker attached to a link
 struct LinkMarker
 {
-	LinkMarker(const std::string &link, InteractionType type, FeedbackFn cb)
+	LinkMarker(const std::string &link, InteractionType type, PoseFeedbackFn cb)
 	   : link(link), type(type), feedback_cb(cb) {}
 
 	/// the link this marker is attached to
@@ -46,34 +45,34 @@ struct LinkMarker
 	InteractionType type;
 
 	/// feedback callback
-	FeedbackFn feedback_cb;
+	PoseFeedbackFn feedback_cb;
 };
 
 /// description of a marker attached to a joint
 struct JointMarker
 {
-	JointMarker(const std::string &joint, FeedbackFn cb)
+	JointMarker(const std::string &joint, PoseFeedbackFn cb)
 	   : joint(joint), feedback_cb(cb) {}
 
 	/// the joint this marker is associated with
 	std::string joint;
 	/// feedback callback
-	FeedbackFn feedback_cb;
+	PoseFeedbackFn feedback_cb;
 };
 
 /// description of a generic marker
 struct GenericMarker
 {
-	GenericMarker(const FeedbackFn & feedback_cb, const GetPoseFn &pose_cb)
+	GenericMarker(const PoseFeedbackFn & feedback_cb, const GetMarkerPoseFn &pose_cb)
 	   : feedback_cb(feedback_cb), pose_cb(pose_cb) {}
 
 	visualization_msgs::InteractiveMarker imarker;
 
 	/// feedback callback
-	FeedbackFn feedback_cb;
+	PoseFeedbackFn feedback_cb;
 
 	/// pose callback
-	GetPoseFn pose_cb;
+	GetMarkerPoseFn pose_cb;
 };
 
 } // namespace rviz_cbf_plugin

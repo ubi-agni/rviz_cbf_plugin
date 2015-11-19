@@ -20,8 +20,8 @@ public Q_SLOTS:
 
 protected:
 	std::list<LinkMarker> getLinkMarkers() const;
-	void markerCallback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr) const;
-	void setTarget(const Eigen::Vector3d &pos);
+	void markerCallback(const geometry_msgs::Pose &pose) const;
+	void setTarget(const Eigen::Vector3d &position);
 
 protected Q_SLOTS:
 	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
