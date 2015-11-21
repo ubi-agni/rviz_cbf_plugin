@@ -42,6 +42,11 @@ RobotInteraction::RobotInteraction(const std::string &ns)
 	ims_ = new interactive_markers::InteractiveMarkerServer(topic_);
 }
 
+RobotInteraction::~RobotInteraction()
+{
+	delete ims_;
+}
+
 void RobotInteraction::setRobotState(const moveit::core::RobotStateConstPtr &rs)
 {
 	robot_state_ = rs;

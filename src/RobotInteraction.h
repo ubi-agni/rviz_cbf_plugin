@@ -19,8 +19,6 @@ namespace rviz_cbf_plugin
  * Markers corresponding to individual controllers can be enabled/disabled.
  * Different controllers can share the same marker, and share or add different
  * controls.
- * A controller registers one or more InteractionHandler objects each of
- * which maintains functions to (re)create interactive markers.
  *
  * Markers are internally collected in a map of MarkerDescriptions.
  * Only if they will be published to the InteractiveMarkerServer, we create
@@ -35,6 +33,7 @@ public:
 	static const std::string INTERACTIVE_MARKER_TOPIC;
 
 	RobotInteraction(const std::string &ns = "");
+	~RobotInteraction();
 	void setRobotState(const moveit::core::RobotStateConstPtr &rs);
 
 	const std::string& getServerTopic(void) const {return topic_;}
