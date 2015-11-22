@@ -46,9 +46,11 @@ ControllerDisplay::ControllerDisplay() :
 
 ControllerDisplay::~ControllerDisplay()
 {
+	this->setAssociatedWidget(NULL);
 	delete controller_root_;
 	delete imarker_display_;
 	robot_interaction_.reset();
+	delete config_panel_;
 }
 
 void ControllerDisplay::onInitialize()
