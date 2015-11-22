@@ -22,22 +22,16 @@ public:
 	void step(const moveit::core::RobotStatePtr &rs);
 
 public Q_SLOTS:
-	void setJoint(const std::string &name);
 
 protected:
 	std::list<JointMarker> getJointMarkers() const;
 	void markerCallback(const geometry_msgs::Pose &pose) const;
-	void setTarget(const Eigen::Vector3d &position);
 
 protected Q_SLOTS:
 	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
-	void changedJointName();
 	void initController();
 
 protected:
-	std::string joint_name_;
-	JointNameProperty *joint_name_property_;
-
 	boost::mutex controller_mutex_;
 	CBF::PrimitiveControllerPtr controller_;
 	CBF::DummyReferencePtr target_;
