@@ -56,6 +56,7 @@ struct JointMarker
 
 	/// the joint this marker is associated with
 	std::string joint;
+
 	/// feedback callback
 	PoseFeedbackFn feedback_cb;
 };

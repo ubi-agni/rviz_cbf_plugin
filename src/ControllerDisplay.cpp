@@ -4,6 +4,7 @@
 #include "RobotInteraction.h"
 #include "controller/Controller.h"
 #include "controller/PositionController.h"
+#include "controller/JointController.h"
 
 #include <rviz/properties/string_property.h>
 #include <rviz/properties/bool_property.h>
@@ -39,7 +40,8 @@ ControllerDisplay::ControllerDisplay() :
 	connect(controller_root_, SIGNAL(markersChanged()), this, SLOT(updateMarkers()));
 
 	// TODO: for testing only:
-	new PositionController(*controller_root_);
+	//new PositionController(*controller_root_);
+	new JointController(*controller_root_);
 }
 
 ControllerDisplay::~ControllerDisplay()

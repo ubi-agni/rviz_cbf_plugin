@@ -261,10 +261,16 @@ void RobotInteraction::createLinkControls(MarkerDescriptionPtr &desc)
 //	addLinkControl(desc->link_control_, interaction_mode, desc->imarker_);
 }
 
-/// create controls for a link
+/// create controls for a joint
 void RobotInteraction::createJointControls(MarkerDescriptionPtr &desc)
 {
-	// TODO
+	// TODO joint control, select interaction mode from desc->type
+	desc->imarker_.controls.empty();
+	//marker_helpers::addPositionControls(desc->imarker_, marker_helpers::AXES::X);
+	marker_helpers::addOrientationControls(desc->imarker_, marker_helpers::AXES::X);
+
+	unsigned int interaction_mode = getInteractionMode(desc->type_);
+	//addJointControl(descd->joint_control_, interaction_mode, desc->imarker_);
 }
 
 /// publish all markers_

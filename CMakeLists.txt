@@ -134,6 +134,7 @@ add_library(${PROJECT_NAME}
    src/controller/properties.cpp
    src/controller/Controller.cpp
    src/controller/PositionController.cpp
+   src/controller/JointController.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${QT_LIBRARIES} cbf)
