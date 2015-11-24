@@ -29,11 +29,12 @@ protected:
 
 protected Q_SLOTS:
 	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
-	void addJoint(const std::string &name);
+	//void addJoint(const std::string &name);
 	void initController();
 
 protected:
-	JointNameProperty *joint_name_property_;
+	//JointNameProperty *joint_name_property_;
+	std::vector<std::string> joint_list_;
 	boost::mutex controller_mutex_;
 	CBF::PrimitiveControllerPtr controller_;
 	CBF::DummyReferencePtr target_;
