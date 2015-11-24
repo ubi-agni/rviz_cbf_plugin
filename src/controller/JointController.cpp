@@ -61,17 +61,21 @@ unsigned int computeDepthFromRoot(const moveit::core::JointModel *joint) {
 
 void JointController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 {
-	BOOST_FOREACH(std::string joint, rm->getJointModelNames()) {
+	/*BOOST_FOREACH(std::string joint, rm->getJointModelNames()) {
+	addJoint(joint);
+	}*/
+
+	joint_name_property_->setRobotModel(rm);
+	const auto joints = rm->getJointModelNames();
+	BOOST_FOREACH(std::string joint, joints) {
 	addJoint(joint);
 	}
-	
 	initController();
 }
 
 void JointController::addJoint(const std::string &name)
 {
-	//joint_name_property_->setValue(QString::fromStdString(joint_name_));
-	
+	joint_name_property_->setValue(QString::fromStdString(name));
 	getRoot().emitMarkersChanged();
 }
 

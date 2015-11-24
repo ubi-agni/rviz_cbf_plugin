@@ -33,6 +33,7 @@ protected Q_SLOTS:
 	void initController();
 
 protected:
+	JointNameProperty *joint_name_property_;
 	boost::mutex controller_mutex_;
 	CBF::PrimitiveControllerPtr controller_;
 	CBF::DummyReferencePtr target_;
