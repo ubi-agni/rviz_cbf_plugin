@@ -29,6 +29,7 @@ protected:
 
 protected Q_SLOTS:
 	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
+	void addJoint(const std::string &name);
 	void initController();
 
 protected:

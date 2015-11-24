@@ -38,7 +38,13 @@ std::list<JointMarker> JointController::getJointMarkers() const
 {
 	auto result = Controller::getJointMarkers(); // fetch markers from children
 	// TODO: push markers for *all* joints
-	// result.push_back(JointMarker(joint_name_, boost::bind(&JointController::markerCallback, this, _1)));
+	BOOST_FOREACH(JointMarker joint_marker, result) {
+		if(!joint_marker.joint.empty()) {
+			result.push_back(JointMarker(joint_marker.joint, boost::bind(&JointController::markerCallback, this, _1)));
+		}
+	}
+
+	//result.push_back(JointMarker(joint_name_, boost::bind(&JointController::markerCallback, this, _1)));
 	return result;
 }
 
@@ -55,7 +61,18 @@ unsigned int computeDepthFromRoot(const moveit::core::JointModel *joint) {
 
 void JointController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 {
+	BOOST_FOREACH(std::string joint, rm->getJointModelNames()) {
+	addJoint(joint);
+	}
+	
 	initController();
+}
+
+void JointController::addJoint(const std::string &name)
+{
+	//joint_name_property_->setValue(QString::fromStdString(joint_name_));
+	
+	getRoot().emitMarkersChanged();
 }
 
 void JointController::markerCallback(const geometry_msgs::Pose &pose) const
