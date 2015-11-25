@@ -25,7 +25,7 @@ namespace rviz_cbf_plugin
 {
 
 JointController::JointController(const Controller &parent,
-                                       const QString& name) :
+                                 const QString& name) :
    Controller(name, parent),
    target_(boost::make_shared<CBF::DummyReference>(1,3))
 {
@@ -36,35 +36,29 @@ JointController::JointController(const Controller &parent,
 std::list<JointMarker> JointController::getJointMarkers() const
 {
 	auto result = Controller::getJointMarkers(); // fetch markers from children
-	// TODO: push markers for *all* joints
-	BOOST_FOREACH(std::string joint_name, joint_list_) {
-		result.push_back(JointMarker(joint_name, boost::bind(&JointController::markerCallback, this, _1)));
-	}
-	return result;
-}
+	const KDL::Tree &tree = getRoot().getKDLTree();
 
-static
-unsigned int computeDepthFromRoot(const moveit::core::JointModel *joint) {
-	unsigned int result = 0;
-	const moveit::core::LinkModel* link = joint->getParentLinkModel();
-	while (link) {
-		++result;
-		link = link->getParentLinkModel();
+	unsigned int j=0;
+	for (auto it = tree.getSegments().begin(),
+	     end = tree.getSegments().end(); it != end; ++it) {
+		const KDL::Joint &joint = it->second.segment.getJoint();
+		if (joint.getType() == KDL::Joint::None) continue;
+		result.push_back(JointMarker(joint.getName(), boost::bind(&JointController::markerCallback, this, _1, j)));
+		++j;
 	}
 	return result;
 }
 
 void JointController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 {
-	joint_list_ = rm->getJointModelNames();
 	initController();
 }
 
-void JointController::markerCallback(const geometry_msgs::Pose &pose) const
+void JointController::markerCallback(const geometry_msgs::Pose &pose, unsigned int joint_id) const
 {
-	Eigen::Affine3d tm;
-	tf::poseMsgToEigen(pose, tm);
-	const_cast<JointController*>(this)->setTarget(tm.translation());
+	// TODO: use your code to compute the joint pos/angle from pose
+	double joint_pos = 0;
+	const_cast<JointController*>(this)->setTarget(joint_id, joint_pos);
 }
 
 void JointController::initController()
@@ -74,7 +68,7 @@ void JointController::initController()
 	const KDL::Tree& tree = getRoot().getKDLTree();
 	unsigned int nJoints = tree.getNrOfJoints();
 
-	//target_ = boost::make_shared<CBF::DummyReference>(1,nJoints);
+	target_ = boost::make_shared<CBF::DummyReference>(1,nJoints);
 
 	std::vector<CBF::ConvergenceCriterionPtr> convergence = boost::assign::list_of
 		(boost::make_shared<CBF::TaskSpaceDistanceThreshold>(1e-3));
@@ -87,8 +81,7 @@ void JointController::initController()
 	controller_ = boost::make_shared<CBF::PrimitiveController>
 	              (1.0,
 	               convergence,
-	               boost::make_shared<CBF::DummyReference>(1,nJoints),
-		       //target_,
+	               target_,
 	               jnt_potential,
 	               boost::make_shared<CBF::IdentitySensorTransform>(nJoints),
 	               solver,
@@ -98,10 +91,10 @@ void JointController::initController()
 	               );
 }
 
-void JointController::setTarget(const Eigen::Vector3d &position)
+void JointController::setTarget(unsigned int joint_id, double joint_pos)
 {
 	boost::mutex::scoped_lock lock(controller_mutex_);
-	target_->set_reference(position);
+	target_->get()[0][joint_id] = joint_pos;
 }
 
 static void updateResource(CBF::DummyResourcePtr joints,
@@ -131,6 +124,8 @@ static void updateRobotState(const moveit::core::RobotStatePtr &rs,
 
 void JointController::step(const moveit::core::RobotStatePtr &rs)
 {
+	boost::mutex::scoped_lock lock(controller_mutex_);
+
 	updateResource(joints_, rs, getRoot().getKDLTree());
 	// perform controller step
 	unsigned int iMaxIter = 10;

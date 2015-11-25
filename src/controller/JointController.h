@@ -25,15 +25,14 @@ public Q_SLOTS:
 
 protected:
 	std::list<JointMarker> getJointMarkers() const;
-	void markerCallback(const geometry_msgs::Pose &pose) const;
-	void setTarget(const Eigen::Vector3d &position);
+	void markerCallback(const geometry_msgs::Pose &pose, unsigned int joint_id) const;
+	void setTarget(unsigned int joint_id, double joint_pos);
 
 protected Q_SLOTS:
 	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
 	void initController();
 
 protected:
-	std::vector<std::string> joint_list_;
 	boost::mutex controller_mutex_;
 	CBF::PrimitiveControllerPtr controller_;
 	CBF::DummyReferencePtr target_;
