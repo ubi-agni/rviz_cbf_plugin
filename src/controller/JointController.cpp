@@ -5,7 +5,6 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
-#include <eigen_conversions/eigen_msg.h>
 
 #include <angles/angles.h>
 
@@ -65,6 +64,7 @@ void JointController::markerCallback(const geometry_msgs::Pose &pose) const
 {
 	Eigen::Affine3d tm;
 	tf::poseMsgToEigen(pose, tm);
+	const_cast<JointController*>(this)->setTarget(tm.translation());
 }
 
 void JointController::initController()
@@ -74,8 +74,11 @@ void JointController::initController()
 	const KDL::Tree& tree = getRoot().getKDLTree();
 	unsigned int nJoints = tree.getNrOfJoints();
 
+	//target_ = boost::make_shared<CBF::DummyReference>(1,nJoints);
+
 	std::vector<CBF::ConvergenceCriterionPtr> convergence = boost::assign::list_of
 		(boost::make_shared<CBF::TaskSpaceDistanceThreshold>(1e-3));
+
 	CBF::PotentialPtr jnt_potential(new CBF::SquarePotential(nJoints, 1.));
 	jnt_potential->set_max_gradient_step_norm(angles::from_degrees(1.) / nJoints);
 
@@ -85,6 +88,7 @@ void JointController::initController()
 	              (1.0,
 	               convergence,
 	               boost::make_shared<CBF::DummyReference>(1,nJoints),
+		       //target_,
 	               jnt_potential,
 	               boost::make_shared<CBF::IdentitySensorTransform>(nJoints),
 	               solver,
@@ -92,6 +96,12 @@ void JointController::initController()
 	               boost::make_shared<CBF::AddingStrategy>(),
 	               joints_
 	               );
+}
+
+void JointController::setTarget(const Eigen::Vector3d &position)
+{
+	boost::mutex::scoped_lock lock(controller_mutex_);
+	target_->set_reference(position);
 }
 
 static void updateResource(CBF::DummyResourcePtr joints,

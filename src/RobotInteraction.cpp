@@ -233,7 +233,8 @@ void RobotInteraction::addMarkers(const std::list<JointMarker> &markers)
 
 		MarkerDescriptionPtr desc = getOrCreateMarkerDescription("JJ_" + m.joint);
 		const std::string &link_name = joint->getChildLinkModel()->getName();
-		desc->imarker_.scale = DEFAULT_SCALE;
+		//desc->imarker_.scale = DEFAULT_SCALE;
+		desc->imarker_.scale = 0.2;
 		desc->imarker_.header.frame_id = robot_state_->getRobotModel()->getRootLinkName();
 		desc->feedback_cbs_.push_back(m.feedback_cb);
 		desc->pose_cb_ = boost::bind(&RobotInteraction::getLinkPose, this, link_name);
@@ -273,7 +274,7 @@ void RobotInteraction::createJointControls(MarkerDescriptionPtr &desc)
 	// TODO joint control, select interaction mode from desc->type
 	desc->imarker_.controls.empty();
 	//marker_helpers::addPositionControls(desc->imarker_, marker_helpers::AXES::X);
-	marker_helpers::addOrientationControls(desc->imarker_, marker_helpers::AXES::X);
+	marker_helpers::addOrientationControls(desc->imarker_, marker_helpers::AXES::ALL);
 
 	unsigned int interaction_mode = getInteractionMode(desc->type_);
 	//addJointControl(descd->joint_control_, interaction_mode, desc->imarker_);

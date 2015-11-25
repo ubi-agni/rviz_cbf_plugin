@@ -26,6 +26,7 @@ public Q_SLOTS:
 protected:
 	std::list<JointMarker> getJointMarkers() const;
 	void markerCallback(const geometry_msgs::Pose &pose) const;
+	void setTarget(const Eigen::Vector3d &position);
 
 protected Q_SLOTS:
 	void setRobotModel(const moveit::core::RobotModelConstPtr &rm);
