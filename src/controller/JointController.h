@@ -38,6 +38,7 @@ protected:
 	CBF::DummyReferencePtr target_;
 	CBF::DummyResourcePtr joints_;
 	boost::shared_ptr<KDL::Chain> chain_;
+	std::map <unsigned int, KDL::Frame&> joint_frames;
 };
 
 } // namespace rviz_cbf_plugin

@@ -21,6 +21,10 @@
 #include <cbf/generic_transform.h>
 #include <cbf/identity_transform.h>
 
+#include <tf/tf.h>
+#include <tf/transform_datatypes.h>
+#include <tf_conversions/tf_kdl.h>
+
 namespace rviz_cbf_plugin
 {
 
@@ -43,6 +47,7 @@ std::list<JointMarker> JointController::getJointMarkers() const
 	     end = tree.getSegments().end(); it != end; ++it) {
 		const KDL::Joint &joint = it->second.segment.getJoint();
 		if (joint.getType() == KDL::Joint::None) continue;
+		joint_frames.find(j)->second = joint.pose(0);
 		result.push_back(JointMarker(joint.getName(), boost::bind(&JointController::markerCallback, this, _1, j)));
 		++j;
 	}
@@ -58,6 +63,11 @@ void JointController::markerCallback(const geometry_msgs::Pose &pose, unsigned i
 {
 	// TODO: use your code to compute the joint pos/angle from pose
 	double joint_pos = 0;
+	tf::Pose jp_tmp1, jp_tmp2;
+	tf::poseMsgToTF(pose, jp_tmp1);
+	tf::poseKDLToTF(joint_frames.at(joint_id), jp_tmp2);
+	joint_pos = jp_tmp1.getRotation().angle(jp_tmp2.getRotation());
+
 	const_cast<JointController*>(this)->setTarget(joint_id, joint_pos);
 }
 
