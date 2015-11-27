@@ -42,14 +42,9 @@ std::list<JointMarker> JointController::getJointMarkers() const
 	auto result = Controller::getJointMarkers(); // fetch markers from children
 	const KDL::Tree &tree = getRoot().getKDLTree();
 
-	unsigned int j=0;
-	for (auto it = tree.getSegments().begin(),
-	     end = tree.getSegments().end(); it != end; ++it) {
-		const KDL::Joint &joint = it->second.segment.getJoint();
-		if (joint.getType() == KDL::Joint::None) continue;
-		joint_frames.find(j)->second = joint.pose(0);
-		result.push_back(JointMarker(joint.getName(), boost::bind(&JointController::markerCallback, this, _1, j)));
-		++j;
+	for (size_t i=0, end=joints_.size(); i != end; ++i) {
+		result.push_back(JointMarker(joints_[i].getName(),
+		                             boost::bind(&JointController::markerCallback, this, _1, i)));
 	}
 	return result;
 }
@@ -57,6 +52,16 @@ std::list<JointMarker> JointController::getJointMarkers() const
 void JointController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 {
 	initController();
+
+	// (re)create active joints_ vector
+	joints_.clear();
+	const KDL::Tree &tree = getRoot().getKDLTree();
+	for (auto it = tree.getSegments().begin(),
+	     end = tree.getSegments().end(); it != end; ++it) {
+		const KDL::Joint &joint = it->second.segment.getJoint();
+		if (joint.getType() == KDL::Joint::None) continue;
+		joints_.push_back(joint);
+	}
 }
 
 void JointController::markerCallback(const geometry_msgs::Pose &pose, unsigned int joint_id) const
@@ -65,7 +70,7 @@ void JointController::markerCallback(const geometry_msgs::Pose &pose, unsigned i
 	double joint_pos = 0;
 	tf::Pose jp_tmp1, jp_tmp2;
 	tf::poseMsgToTF(pose, jp_tmp1);
-	tf::poseKDLToTF(joint_frames.at(joint_id), jp_tmp2);
+	tf::poseKDLToTF(joints_.at(joint_id).pose(0), jp_tmp2);
 	joint_pos = jp_tmp1.getRotation().angle(jp_tmp2.getRotation());
 
 	const_cast<JointController*>(this)->setTarget(joint_id, joint_pos);
@@ -86,7 +91,7 @@ void JointController::initController()
 	CBF::PotentialPtr jnt_potential(new CBF::SquarePotential(nJoints, 1.));
 	jnt_potential->set_max_gradient_step_norm(angles::from_degrees(1.) / nJoints);
 
-	joints_ = boost::make_shared<CBF::DummyResource>(nJoints);
+	joint_values_ = boost::make_shared<CBF::DummyResource>(nJoints);
 	auto solver = boost::make_shared<CBF::IdentityEffectorTransform>(nJoints);
 	controller_ = boost::make_shared<CBF::PrimitiveController>
 	              (1.0,
@@ -97,7 +102,7 @@ void JointController::initController()
 	               solver,
 	               std::vector<CBF::SubordinateControllerPtr>(),
 	               boost::make_shared<CBF::AddingStrategy>(),
-	               joints_
+	               joint_values_
 	               );
 }
 
@@ -107,28 +112,20 @@ void JointController::setTarget(unsigned int joint_id, double joint_pos)
 	target_->get()[0][joint_id] = joint_pos;
 }
 
-static void updateResource(CBF::DummyResourcePtr joints,
+static void updateResource(CBF::DummyResourcePtr joint_values,
                            const moveit::core::RobotStatePtr &rs,
-                           const KDL::Tree& tree)
+                           const std::vector<KDL::Joint>& joints)
 {
-	unsigned int j=0;
-	for (auto it = tree.getSegments().begin(),
-	     end = tree.getSegments().end(); it != end; ++it) {
-		const KDL::Joint &joint = it->second.segment.getJoint();
-		if (joint.getType() == KDL::Joint::None) continue;
-		joints->m_Variables[j++] = rs->getVariablePosition(joint.getName());
+	for (size_t i=0, end=joints.size(); i != end; ++i) {
+		joint_values->m_Variables[i] = rs->getVariablePosition(joints[i].getName());
 	}
 }
 
 static void updateRobotState(const moveit::core::RobotStatePtr &rs,
-                             CBF::DummyResourcePtr joints,
-                             const KDL::Tree& tree) {
-	unsigned int j=0;
-	for (auto it = tree.getSegments().begin(),
-	     end = tree.getSegments().end(); it != end; ++it) {
-		const KDL::Joint &joint = it->second.segment.getJoint();
-		if (joint.getType() == KDL::Joint::None) continue;
-		rs->setVariablePosition(joint.getName(), joints->m_Variables[j++]);
+                             CBF::DummyResourcePtr joint_values,
+                             const std::vector<KDL::Joint>& joints) {
+	for (size_t i=0, end=joints.size(); i != end; ++i) {
+		rs->setVariablePosition(joints[i].getName(), joint_values->m_Variables[i]);
 	}
 }
 
@@ -136,13 +133,13 @@ void JointController::step(const moveit::core::RobotStatePtr &rs)
 {
 	boost::mutex::scoped_lock lock(controller_mutex_);
 
-	updateResource(joints_, rs, getRoot().getKDLTree());
+	updateResource(joint_values_, rs, joints_);
 	// perform controller step
 	unsigned int iMaxIter = 10;
 	while (iMaxIter && controller_->step() == false) {
 		--iMaxIter;
 	}
-	updateRobotState(rs, joints_, getRoot().getKDLTree());
+	updateRobotState(rs, joint_values_, joints_);
 }
 
 

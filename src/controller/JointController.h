@@ -36,9 +36,9 @@ protected:
 	boost::mutex controller_mutex_;
 	CBF::PrimitiveControllerPtr controller_;
 	CBF::DummyReferencePtr target_;
-	CBF::DummyResourcePtr joints_;
+	CBF::DummyResourcePtr joint_values_;
 	boost::shared_ptr<KDL::Chain> chain_;
-	std::map <unsigned int, KDL::Frame&> joint_frames;
+	std::vector<KDL::Joint> joints_;
 };
 
 } // namespace rviz_cbf_plugin
