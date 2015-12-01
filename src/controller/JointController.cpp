@@ -71,7 +71,15 @@ void JointController::markerCallback(const geometry_msgs::Pose &pose, unsigned i
 	tf::Pose jp_tmp1, jp_tmp2;
 	tf::poseMsgToTF(pose, jp_tmp1);
 	tf::poseKDLToTF(joints_.at(joint_id).pose(0), jp_tmp2);
-	joint_pos = jp_tmp1.getRotation().angle(jp_tmp2.getRotation());
+	//joint_pos = jp_tmp1.getRotation().angle(jp_tmp2.getRotation());
+	joint_pos = acos(jp_tmp1.getRotation().getW());
+
+	geometry_msgs::Pose p1,p2,p3,p4;
+	//tf::poseKDLToMsg(joints_.at(joint_id).pose(0), p1);
+	//tf::poseKDLToMsg(joints_.at(joint_id).pose(3.15), p2);
+	tf::poseKDLToMsg(joints_.at(joint_id).pose(joint_pos), p3);
+
+	std::cout<<joints_.at(joint_id).getName()<<"   "<<joint_pos<<std::endl<<pose<<std::endl<<p3<<std::endl<<std::endl<<std::endl;	
 
 	const_cast<JointController*>(this)->setTarget(joint_id, joint_pos);
 }
