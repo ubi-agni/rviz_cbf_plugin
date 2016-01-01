@@ -44,7 +44,8 @@ std::list<JointMarker> JointController::getJointMarkers() const
 
 	for (size_t i=0, end=joints_.size(); i != end; ++i) {
 		result.push_back(JointMarker(joints_[i].getName(),
-		                             boost::bind(&JointController::markerCallback, this, _1, i)));
+		                             boost::bind(&JointController::markerCallback, this, _1,
+		                                         Eigen::Vector3d(joints_[i].JointAxis().data), i)));
 	}
 	return result;
 }
@@ -64,24 +65,17 @@ void JointController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 	}
 }
 
-void JointController::markerCallback(const geometry_msgs::Pose &pose, unsigned int joint_id) const
+void JointController::markerCallback(const geometry_msgs::Pose &pose, const Eigen::Vector3d &axis, unsigned int joint_id) const
 {
-	// TODO: use your code to compute the joint pos/angle from pose
-	double joint_pos = 0;
-	tf::Pose jp_tmp1, jp_tmp2;
-	tf::poseMsgToTF(pose, jp_tmp1);
-	tf::poseKDLToTF(joints_.at(joint_id).pose(0), jp_tmp2);
-	//joint_pos = jp_tmp1.getRotation().angle(jp_tmp2.getRotation());
-	joint_pos = acos(jp_tmp1.getRotation().getW());
-
-	geometry_msgs::Pose p1,p2,p3,p4;
-	//tf::poseKDLToMsg(joints_.at(joint_id).pose(0), p1);
-	//tf::poseKDLToMsg(joints_.at(joint_id).pose(3.15), p2);
-	tf::poseKDLToMsg(joints_.at(joint_id).pose(joint_pos), p3);
-
-	std::cout<<joints_.at(joint_id).getName()<<"   "<<joint_pos<<std::endl<<pose<<std::endl<<p3<<std::endl<<std::endl<<std::endl;	
-
-	const_cast<JointController*>(this)->setTarget(joint_id, joint_pos);
+	/* simple computation from acos(quat.w) doesn't work, as the quaternion computation
+	 * from matrix already restricts the joint angle to [0..pi], because of acos((tr(R) - 1) / 2) in [0..pi].
+	 * The rotation axis is accordingly flipped if neccessary.
+	 * Hence, use atan2 to compute the angle - considering both, cos and sin of angle */
+	const geometry_msgs::Quaternion &o = pose.orientation;
+	Eigen::Quaterniond q(o.w, o.x, o.y, o.z); q.normalize();
+	size_t maxIdx;
+	axis.array().abs().maxCoeff(&maxIdx);
+	const_cast<JointController*>(this)->setTarget(joint_id, 2.*atan2(q.vec()[maxIdx] / axis[maxIdx], q.w()));
 }
 
 void JointController::initController()
@@ -97,7 +91,7 @@ void JointController::initController()
 		(boost::make_shared<CBF::TaskSpaceDistanceThreshold>(1e-3));
 
 	CBF::PotentialPtr jnt_potential(new CBF::SquarePotential(nJoints, 1.));
-	jnt_potential->set_max_gradient_step_norm(angles::from_degrees(1.) / nJoints);
+	jnt_potential->set_max_gradient_step_norm(angles::from_degrees(360) / nJoints);
 
 	joint_values_ = boost::make_shared<CBF::DummyResource>(nJoints);
 	auto solver = boost::make_shared<CBF::IdentityEffectorTransform>(nJoints);

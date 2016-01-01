@@ -25,7 +25,7 @@ public Q_SLOTS:
 
 protected:
 	std::list<JointMarker> getJointMarkers() const;
-	void markerCallback(const geometry_msgs::Pose &pose, unsigned int joint_id) const;
+	void markerCallback(const geometry_msgs::Pose &pose, const Eigen::Vector3d &axis, unsigned int joint_id) const;
 	void setTarget(unsigned int joint_id, double joint_pos);
 
 protected Q_SLOTS:
