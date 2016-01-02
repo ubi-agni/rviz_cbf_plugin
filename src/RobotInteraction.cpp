@@ -19,6 +19,10 @@ namespace rviz_cbf_plugin
 
 const std::string RobotInteraction::INTERACTIVE_MARKER_TOPIC = "robot_interaction_interactive_marker_topic";
 
+/** MarkerDescription are generic marker descriptions generated
+ *  from LinkMarker, JointMarker, GenericMarker instances.
+ *  This data type is only used internally in RobotInteraction.
+ */
 struct RobotInteraction::MarkerDescription
 {
 	MarkerDescription(const std::string &name) {
@@ -28,8 +32,9 @@ struct RobotInteraction::MarkerDescription
 		dirty_ = false;
 	}
 
-	vm::InteractiveMarker imarker_;
+	vm::InteractiveMarker imarker_; ///< the actual marker description
 	unsigned int type_; ///< interaction type
+	Eigen::Vector3d axis_; ///< user-defined motion axis (for types TAXIS or RAXIS)
 	std::string link_control_; ///< name of link to use for direct link interaction
 	bool dirty_; ///< did we received a pose update?
 	std::vector<PoseFeedbackFn> feedback_cbs_; ///< list of feedback callbacks
@@ -212,10 +217,9 @@ void RobotInteraction::addMarkers(const std::list<LinkMarker> &markers)
 			continue;
 		}
 		MarkerDescriptionPtr desc = getOrCreateMarkerDescription("LL_" + m.link);
-		desc->imarker_.header.frame_id = robot_state_->getRobotModel()->getRootLinkName();
 		if (desc->imarker_.scale == 0)
 			desc->imarker_.scale = computeLinkMarkerSize(m.link, &desc->link_control_);
-		desc->type_ |= m.type;
+		desc->type_ = m.type;
 		desc->feedback_cbs_.push_back(m.feedback_cb);
 		desc->pose_cb_ = boost::bind(&RobotInteraction::getLinkPose, this, m.link);
 	}
@@ -233,9 +237,20 @@ void RobotInteraction::addMarkers(const std::list<JointMarker> &markers)
 
 		MarkerDescriptionPtr desc = getOrCreateMarkerDescription("JJ_" + m.joint);
 		const std::string &link_name = joint->getChildLinkModel()->getName();
-		//desc->imarker_.scale = DEFAULT_SCALE;
+		if (desc->imarker_.scale == 0)
+			desc->imarker_.scale = computeLinkMarkerSize(link_name, &desc->link_control_);
 		desc->imarker_.scale = 0.2;
-		desc->imarker_.header.frame_id = robot_state_->getRobotModel()->getRootLinkName();
+
+		switch (joint->getType()) {
+		case rm::JointModel::REVOLUTE:
+			desc->type_ = RAXIS;
+			desc->axis_ = static_cast<const rm::RevoluteJointModel*>(joint)->getAxis();
+			break;
+		case rm::JointModel::PRISMATIC:
+			desc->type_ = RAXIS;
+			desc->axis_ = static_cast<const rm::PrismaticJointModel*>(joint)->getAxis();
+			break;
+		}
 		desc->feedback_cbs_.push_back(m.feedback_cb);
 		desc->pose_cb_ = boost::bind(&RobotInteraction::getLinkPose, this, link_name);
 	}
@@ -255,41 +270,24 @@ void RobotInteraction::addMarkers(const std::list<GenericMarker> &markers)
 	}
 }
 
-/// create controls for a link
-void RobotInteraction::createLinkControls(MarkerDescriptionPtr &desc)
-{
-	// TODO link control, select interaction mode from desc->type
-	desc->imarker_.controls.empty();
-	marker_helpers::addPositionControls(desc->imarker_, marker_helpers::AXES::ALL);
-	marker_helpers::addOrientationControls(desc->imarker_, marker_helpers::AXES::ALL);
-
-	unsigned int interaction_mode = getInteractionMode(desc->type_);
-	addSphereControl(interaction_mode, desc->imarker_);
-//	addLinkControl(desc->link_control_, interaction_mode, desc->imarker_);
-}
-
-/// create controls for a joint
-void RobotInteraction::createJointControls(MarkerDescriptionPtr &desc)
-{
-	// TODO joint control, select interaction mode from desc->type
-	desc->imarker_.controls.empty();
-	//marker_helpers::addPositionControls(desc->imarker_, marker_helpers::AXES::X);
-	marker_helpers::addOrientationControls(desc->imarker_, marker_helpers::AXES::ALL);
-
-	unsigned int interaction_mode = getInteractionMode(desc->type_);
-	//addJointControl(descd->joint_control_, interaction_mode, desc->imarker_);
-}
-
 /// publish all markers_
 void RobotInteraction::publishMarkers()
 {
 	ims_->clear();
 	BOOST_FOREACH(MarkerDescriptionPtr desc, markers_ | boost::adaptors::map_values) {
+		// always use frame of root link as we directly visualize our robot (tf frames are not affected)
+		desc->imarker_.header.frame_id = robot_state_->getRobotModel()->getRootLinkName();
 		desc->imarker_.pose = desc->pose_cb_();
-		if (boost::algorithm::starts_with(desc->imarker_.name, "LL_"))
-			createLinkControls(desc);
-		else if (boost::algorithm::starts_with(desc->imarker_.name, "JJ_"))
-			createJointControls(desc);
+		desc->imarker_.controls.empty();
+		// add standard position/orientation controls
+		marker_helpers::addAxisControls(desc->imarker_, desc->type_);
+		// add user-defined position/orientation controls
+		if (desc->type_ & TAXIS) marker_helpers::addOrientationControl(desc->imarker_, desc->axis_);
+		if (desc->type_ & RAXIS) marker_helpers::addOrientationControl(desc->imarker_, desc->axis_);
+
+		unsigned int interaction_mode = getInteractionMode(desc->type_);
+		addSphereControl(interaction_mode, desc->imarker_);
+
 		desc->dirty_ = true;
 		ims_->insert(desc->imarker_, boost::bind(&RobotInteraction::processFeedback, this, _1));
 	}

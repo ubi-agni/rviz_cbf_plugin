@@ -36,7 +36,7 @@ PositionController::PositionController(const Controller &parent,
 std::list<LinkMarker> PositionController::getLinkMarkers() const
 {
 	auto result = Controller::getLinkMarkers(); // fetch markers from children
-	result.push_back(LinkMarker(link_name_, InteractionType::MOVE_ROTATE_3D,
+	result.push_back(LinkMarker(link_name_, InteractionType::MOVE_3D,
 	                            boost::bind(&PositionController::markerCallback, this, _1)));
 	return result;
 }

@@ -42,10 +42,28 @@ std::list<JointMarker> JointController::getJointMarkers() const
 	auto result = Controller::getJointMarkers(); // fetch markers from children
 	const KDL::Tree &tree = getRoot().getKDLTree();
 
+	PoseFeedbackFn cb;
 	for (size_t i=0, end=joints_.size(); i != end; ++i) {
-		result.push_back(JointMarker(joints_[i].getName(),
-		                             boost::bind(&JointController::markerCallback, this, _1,
-		                                         Eigen::Vector3d(joints_[i].JointAxis().data), i)));
+		const KDL::Joint &joint = joints_[i];
+		switch (joint.getType()) {
+		case KDL::Joint::TransAxis:
+		case KDL::Joint::TransX:
+		case KDL::Joint::TransY:
+		case KDL::Joint::TransZ:
+			cb = boost::bind(&JointController::computePrismaticTarget, this, _1,
+			                 Eigen::Vector3d(joint.JointAxis().data), i);
+			break;
+
+		case KDL::Joint::RotAxis:
+		case KDL::Joint::RotX:
+		case KDL::Joint::RotY:
+		case KDL::Joint::RotZ:
+			cb = boost::bind(&JointController::computeRevoluteTarget, this, _1,
+			                 Eigen::Vector3d(joint.JointAxis().data), i);
+			break;
+		}
+
+		result.push_back(JointMarker(joint.getName(), cb));
 	}
 	return result;
 }
@@ -65,7 +83,16 @@ void JointController::setRobotModel(const robot_model::RobotModelConstPtr &rm)
 	}
 }
 
-void JointController::markerCallback(const geometry_msgs::Pose &pose, const Eigen::Vector3d &axis, unsigned int joint_id) const
+void JointController::computePrismaticTarget(const geometry_msgs::Pose &pose, const Eigen::Vector3d &axis,
+                                             unsigned int joint_id) const
+{
+	const geometry_msgs::Point &p = pose.position;
+	Eigen::Vector3d pos(p.x, p.y, p.z);
+	const_cast<JointController*>(this)->setTarget(joint_id, pos.dot(axis));
+}
+
+void JointController::computeRevoluteTarget(const geometry_msgs::Pose &pose, const Eigen::Vector3d &axis,
+                                            unsigned int joint_id) const
 {
 	/* simple computation from acos(quat.w) doesn't work, as the quaternion computation
 	 * from matrix already restricts the joint angle to [0..pi], because of acos((tr(R) - 1) / 2) in [0..pi].

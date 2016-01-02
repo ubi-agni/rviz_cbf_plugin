@@ -25,6 +25,7 @@
  * ============================================================ */
 
 #include "marker_helpers.h"
+#include "interaction_types.h"
 #include <QColor>
 
 namespace marker_helpers {
@@ -173,15 +174,6 @@ void addPositionControl(visualization_msgs::InteractiveMarker& imarker,
 	imarker.controls.push_back(control);
 }
 
-void addPositionControls(visualization_msgs::InteractiveMarker& imarker,
-                         unsigned int axes, bool orientation_fixed)
-{
-	for (unsigned int i=0; i < 3; ++i) {
-		if (!(axes & (1 << i))) continue;
-		addPositionControl(imarker, Eigen::Vector3d::Unit(i), orientation_fixed);
-	}
-}
-
 void addOrientationControl(visualization_msgs::InteractiveMarker& imarker,
                            const Eigen::Vector3d &axis, bool orientation_fixed) {
 	visualization_msgs::InteractiveMarkerControl control;
@@ -194,11 +186,15 @@ void addOrientationControl(visualization_msgs::InteractiveMarker& imarker,
 	imarker.controls.push_back(control);
 }
 
-void addOrientationControls(visualization_msgs::InteractiveMarker& imarker,
-                            unsigned int axes, bool orientation_fixed)
+void addAxisControls(visualization_msgs::InteractiveMarker& imarker,
+                 unsigned int axes, bool orientation_fixed)
 {
 	for (unsigned int i=0; i < 3; ++i) {
-		if (!(axes & (1 << i))) continue;
+		if (!(axes & (rviz_cbf_plugin::TX << i))) continue;
+		addPositionControl(imarker, Eigen::Vector3d::Unit(i), orientation_fixed);
+	}
+	for (unsigned int i=0; i < 3; ++i) {
+		if (!(axes & (rviz_cbf_plugin::RX << i))) continue;
 		addOrientationControl(imarker, Eigen::Vector3d::Unit(i), orientation_fixed);
 	}
 }

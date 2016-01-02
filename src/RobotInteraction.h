@@ -64,6 +64,7 @@ protected:
 
 	/// get the current pose of the link w.r.t. root frame
 	geometry_msgs::Pose getLinkPose(const std::string &link);
+
 	/// add interactive control based on link geometry
 	bool addLinkControl(const std::string &link, unsigned int interaction_mode,
 	                    visualization_msgs::InteractiveMarker &im) const;
@@ -72,8 +73,6 @@ protected:
 
 private:
 	void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
-	void createLinkControls(MarkerDescriptionPtr &desc);
-	void createJointControls(MarkerDescriptionPtr &desc);
 
 private:
 	moveit::core::RobotStateConstPtr robot_state_;

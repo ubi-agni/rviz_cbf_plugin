@@ -43,6 +43,7 @@
 
 #include <interactive_markers/interactive_marker_server.h>
 #include "marker_helpers.h"
+#include "interaction_types.h"
 #include <QColor>
 
 #include <tf/tf.h>
@@ -179,8 +180,7 @@ void make6DofMarker(const geometry_msgs::PoseStamped &stamped, bool ok)
 	ctrl.markers.push_back(m);
 	imarker.controls.push_back(ctrl);
 
-	addPositionControls(imarker);
-	addOrientationControls(imarker);
+	addAxisControls(imarker, rviz_cbf_plugin::MOVE_ROTATE_3D);
 
 	server->clear();
 	server->insert(imarker, &processFeedback);
